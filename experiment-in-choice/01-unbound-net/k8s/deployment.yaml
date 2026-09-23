@@ -1,8 +1,11 @@
-apiVersion: apps/v1kind: Deploymentmetadata:
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: unbound-matrix-deployment
   namespace: default
   labels:
-    app: unbound-matrixspec:
+    app: unbound-matrix
+spec:
   replicas: 3
   selector:
     matchLabels:
@@ -32,9 +35,13 @@ apiVersion: apps/v1kind: Deploymentmetadata:
             - python
           initialDelaySeconds: 5
           periodSeconds: 10
----apiVersion: v1kind: Servicemetadata:
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: unbound-matrix-service
-  namespace: defaultspec:
+  namespace: default
+spec:
   type: ClusterIP
   ports:
   - port: 8080

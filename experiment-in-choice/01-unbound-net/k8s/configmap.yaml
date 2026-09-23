@@ -1,6 +1,9 @@
-apiVersion: v1kind: ConfigMapmetadata:
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: prometheus-matrix-config
-  namespace: defaultdata:
+  namespace: default
+data:
   prometheus.yml: |
     global:
       scrape_interval: 5s

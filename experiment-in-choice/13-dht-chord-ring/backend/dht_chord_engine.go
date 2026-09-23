@@ -1,4 +1,5 @@
 package main
+
 import (
 	"crypto/sha1"
 	"encoding/binary"
@@ -11,10 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
+
 const RingModulo = 1000 // Simplified virtual token ring bounds for presentation mapping
-// ChordTelemetry packages decentralized routing structures for web display viewportstype ChordTelemetry struct {
+// ChordTelemetry packages decentralized routing structures for web display viewports
+type ChordTelemetry struct {
 	Timestamp      string           `json:"timestamp"`
 	LifecycleTick  int64            `json:"lifecycleTick"`
 	NodePositions  []int            `json:"nodePositions"`  // Active node positions on 0-999 ring
@@ -22,11 +25,13 @@ const RingModulo = 1000 // Simplified virtual token ring bounds for presentation
 	RoutingSteps   int              `json:"routingSteps"`   // Hops spent on last content lookup
 	NetworkEntropy float64          `json:"networkEntropy"` // Variance profile of load distribution
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
+
 type ChordNode struct {
-	HashID      int
+	HashID       int
 	AssignedKeys []string
 }
 type ChordRing struct {
@@ -35,6 +40,7 @@ type ChordRing struct {
 	Tick  int64
 	Mu    sync.RWMutex
 }
+
 func NewChordRing() *ChordRing {
 	return &ChordRing{
 		Nodes: make(map[int]*ChordNode),
@@ -66,7 +72,7 @@ func (r *ChordRing) RemoveNodeRandom() {
 	if len(r.Nodes) <= 2 {
 		return // Retain a critical quorum floor for mapping integrity
 	}
-	
+
 	// Select random key position to prune
 	keys := make([]int, 0, len(r.Nodes))
 	for k := range r.Nodes {
@@ -92,7 +98,7 @@ func (r *ChordRing) ReallocateTopology() (int, float64) {
 
 	// Inject periodic fresh asset blocks into the data partition ring
 	if r.Tick%5 == 0 {
-		mockAssetID := fmt.Sprintf("content_hash_0x%X", rand.Int64())
+		mockAssetID := fmt.Sprintf("content_hash_0x%X", rand.Int63())
 		r.Keys[mockAssetID] = hashString(mockAssetID)
 	}
 
@@ -130,7 +136,7 @@ func (r *ChordRing) ReallocateTopology() (int, float64) {
 }
 func main() {
 	ring := NewChordRing()
-	
+
 	// Seed static network topology ring nodes
 	ring.AddNode("storage_cell_alpha")
 	ring.AddNode("storage_cell_beta")
@@ -163,7 +169,7 @@ func main() {
 			ring.Mu.RLock()
 			nodePositions := make([]int, 0, len(ring.Nodes))
 			keyAssignments := make(map[int][]string)
-			
+
 			for pos, node := range ring.Nodes {
 				nodePositions = append(nodePositions, pos)
 				keyAssignments[pos] = make([]string, len(node.AssignedKeys))

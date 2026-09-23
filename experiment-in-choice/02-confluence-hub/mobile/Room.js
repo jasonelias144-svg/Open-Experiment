@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';import { StyleSheet, Text, View, FlatList, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, Text, View, FlatList, TextInput, TouchableOpacity, SafeAreaView } from 'react-native';
 export default function ConfluenceRoom({ roomId, clientId, senderType }) {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');

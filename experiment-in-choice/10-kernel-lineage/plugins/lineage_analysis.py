@@ -1,4 +1,7 @@
-import sqlite3import timeimport jsonimport os
+import sqlite3
+import time
+import json
+import os
 def run_epistemic_audit():
     db_path = "./backend/unbound_matrix.db"
     
@@ -60,7 +63,7 @@ def run_epistemic_audit():
     except Exception as e:
         print(f"[! ANALYSIS_ERR] Core calculation breakdown: {str(e)}")
     finally:
-		conn.close()
+        conn.close()
 if __name__ == "__main__":
     while True:
         run_epistemic_audit()

@@ -1,4 +1,5 @@
 package main
+
 import (
 	"encoding/json"
 	"fmt"
@@ -7,19 +8,24 @@ import (
 	"net/http"
 	"time"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
-// NeuralTelemetry encodes synaptic mapping arrays for visualization viewportstype NeuralTelemetry struct {
-	Timestamp     string    `json:"timestamp"`
-	Generation    int64     `json:"generation"`
-	FitnessScore  float64   `json:"fitnessScore"`
-	NodeStates    []float64 `json:"nodeStates"`    // Node activation potentials: σ(Σwx)
+
+// NeuralTelemetry encodes synaptic mapping arrays for visualization viewports
+type NeuralTelemetry struct {
+	Timestamp      string    `json:"timestamp"`
+	Generation     int64     `json:"generation"`
+	FitnessScore   float64   `json:"fitnessScore"`
+	NodeStates     []float64 `json:"nodeStates"`     // Node activation potentials: σ(Σwx)
 	SynapseWeights []float64 `json:"synapseWeights"` // Connection multipliers
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
-// Synapse represents a directed learning arc between two nodestype Synapse struct {
+
+// Synapse represents a directed learning arc between two nodes
+type Synapse struct {
 	From   int
 	To     int
 	Weight float64
@@ -29,6 +35,7 @@ type NeuralGraph struct {
 	Synapses []Synapse
 	Fitness  float64
 }
+
 func NewGraph() *NeuralGraph {
 	g := &NeuralGraph{
 		Nodes: make([]float64, 6), // 2 Input, 2 Hidden, 2 Output architecture
@@ -41,7 +48,9 @@ func NewGraph() *NeuralGraph {
 	}
 	return g
 }
-// Sigmoid activation clamping functionfunc sigmoid(x float64) float64 {
+
+// Sigmoid activation clamping function
+func sigmoid(x float64) float64 {
 	return 1.0 / (1.0 + math.Exp(-x))
 }
 func (g *NeuralGraph) Forward(inputA, inputB float64) {
@@ -94,12 +103,16 @@ func main() {
 
 		for range ticker.C {
 			gen++
-			
+
 			// Cycle inputs between raw logic parameters to assess ongoing map efficiency
 			inA := 0.0
 			inB := 0.0
-			if gen%2 == 0 { inA = 1.0 }
-			if gen%4 < 2 { inB = 1.0 }
+			if gen%2 == 0 {
+				inA = 1.0
+			}
+			if gen%4 < 2 {
+				inB = 1.0
+			}
 
 			graph.PerturbWeights()
 			graph.Forward(inA, inB)

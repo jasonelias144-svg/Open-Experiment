@@ -1,27 +1,34 @@
 package main
+
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
-// Message holds structural network communications datatype Message struct {
-	RoomID     string `json:"roomId"`
-	SenderType string `json:"senderType"` // "human" | "ai" | "system"
-	SenderID   string `json:"senderId"`
+
+// Message holds structural network communications data
+type Message struct {
+	RoomID      string `json:"roomId"`
+	SenderType  string `json:"senderType"` // "human" | "ai" | "system"
+	SenderID    string `json:"senderId"`
 	ContextType string `json:"contextType"` // "scientific" | "artistic" | "tech" | "phi" | "social"
-	Content    string `json:"content"`
-	BranchID   string `json:"branchId,omitempty"`
+	Content     string `json:"content"`
+	BranchID    string `json:"branchId,omitempty"`
 }
-// Client definition representing a single pipeline nodetype Client struct {
+
+// Client definition representing a single pipeline node
+type Client struct {
 	ID         string
 	SenderType string
 	Conn       *websocket.Conn
 	Send       chan []byte
 }
-// Room holds client mappings for active roomstype Room struct {
+
+// Room holds client mappings for active rooms
+type Room struct {
 	ID      string
 	Clients map[*Client]bool
 	Mu      sync.RWMutex
@@ -37,9 +44,11 @@ type ClientRegistration struct {
 	Client *Client
 	RoomID string
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
+
 func NewHub() *Hub {
 	return &Hub{
 		Rooms:      make(map[string]*Room),
@@ -110,7 +119,7 @@ func main() {
 		if err != nil {
 			return
 		}
-		
+
 		query := r.URL.Query()
 		roomID := query.Get("room")
 		senderType := query.Get("type") // "human", "ai"

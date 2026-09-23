@@ -1,4 +1,5 @@
 package main
+
 import (
 	"encoding/json"
 	"fmt"
@@ -8,25 +9,31 @@ import (
 	"sync"
 	"time"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
-// MarketTelemetry encodes asset pricing spreads for visualization viewportstype MarketTelemetry struct {
+
+// MarketTelemetry encodes asset pricing spreads for visualization viewports
+type MarketTelemetry struct {
 	Timestamp      string             `json:"timestamp"`
 	UpdateIndex    int64              `json:"updateIndex"`
 	PoolPrices     map[string]float64 `json:"poolPrices"`     // Mid-market rates from liquidity structures
 	ArbitrageDelta float64            `json:"arbitrageDelta"` // Systemic price inefficiencies open for extraction
 	Reserves       map[string][]int   `json:"reserves"`       // Token allocation pairs: [ReserveA, ReserveB]
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
-// Pool models a constant-product Automated Market Maker (x * y = k)type Pool struct {
+
+// Pool models a constant-product Automated Market Maker (x * y = k)
+type Pool struct {
 	TokenA   string
 	TokenB   string
 	ReserveA float64
 	ReserveB float64
 	Mu       sync.RWMutex
 }
+
 func (p *Pool) GetPrice() float64 {
 	p.Mu.RLock()
 	defer p.Mu.RUnlock()
@@ -35,10 +42,12 @@ func (p *Pool) GetPrice() float64 {
 	}
 	return p.ReserveB / p.ReserveA
 }
-// ApplyTrade Volume Shocks to simulate independent liquidity adjustmentsfunc (p *Pool) ProcessRandomTrade() {
+
+// ApplyTrade Volume Shocks to simulate independent liquidity adjustments
+func (p *Pool) ProcessRandomTrade() {
 	p.Mu.Lock()
 	defer p.Mu.Unlock()
-	
+
 	// Simulate buy or sell pressure altering token ratio balances
 	shock := (rand.Float64()*2 - 1) * 25.0
 	if shock > 0 && p.ReserveA > 50 {

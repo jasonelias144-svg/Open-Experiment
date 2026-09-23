@@ -61,7 +61,7 @@
 
     <script>
         const socket = new WebSocket('ws://localhost:8080/scheduler-stream');
-        let lastQueueSizes =;
+        let lastQueueSizes = [0, 0, 0, 0];
 
         socket.onmessage = (event) => {
             const data = JSON.parse(event.data);

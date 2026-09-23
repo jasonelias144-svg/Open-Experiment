@@ -1,4 +1,5 @@
 package main
+
 import (
 	"database/sql"
 	"encoding/json"
@@ -11,10 +12,12 @@ import (
 	"sync"
 	"time"
 
-	"://github.com"
-	_ "://github.com" // Native CGO-free or wrapped SQLite driver
+	"github.com/gorilla/websocket"
+	_ "github.com/mattn/go-sqlite3" // Native CGO-free or wrapped SQLite driver
 )
-// StructuralPacket maps the asynchronous execution state spacetype StructuralPacket struct {
+
+// StructuralPacket maps the asynchronous execution state space
+type StructuralPacket struct {
 	Timestamp      string             `json:"timestamp"`
 	Heartbeat      int64              `json:"heartbeat"`
 	ActiveWrapper  string             `json:"activeWrapper"`
@@ -22,16 +25,19 @@ import (
 	AnomaliesCount int64              `json:"anomaliesCount"`
 	ActiveAperture float64            `json:"activeAperture"`
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
+
 type KernelState struct {
-	Planes     map[string]float64
-	Anomalies  int64
-	LoopIndex  int64
-	DB         *sql.DB
-	Mu         sync.RWMutex
+	Planes    map[string]float64
+	Anomalies int64
+	LoopIndex int64
+	DB        *sql.DB
+	Mu        sync.RWMutex
 }
+
 func NewKernelState(db *sql.DB) *KernelState {
 	return &KernelState{
 		Planes: map[string]float64{
@@ -43,7 +49,7 @@ func NewKernelState(db *sql.DB) *KernelState {
 		},
 		Anomalies: 0,
 		LoopIndex: 0,
-		DB:         db,
+		DB:        db,
 	}
 }
 func initDatabase() *sql.DB {
@@ -67,7 +73,7 @@ func initDatabase() *sql.DB {
 		anomalies INTEGER,
 		aperture REAL
 	);`
-	
+
 	_, err = db.Exec(schema)
 	if err != nil {
 		log.Fatalf("[FATAL] Failed to compile database schema: %v", err)
@@ -97,7 +103,7 @@ func (k *KernelState) ComputeMetabolism() (string, float64) {
 
 	wrapperToken := "(💎)"
 	driftValue := math.Abs(k.Planes["Epistemic"] - 0.5)
-	
+
 	if driftValue > 0.18 {
 		if k.LoopIndex%2 == 0 {
 			wrapperToken = "(💎]"
@@ -143,7 +149,7 @@ func main() {
 		ticker := time.NewTicker(200 * time.Millisecond)
 		for range ticker.C {
 			wrapper, aperture := state.ComputeMetabolism()
-			
+
 			packet := StructuralPacket{
 				Timestamp:      time.Now().Format(time.RFC3339),
 				Heartbeat:      state.LoopIndex,
@@ -161,13 +167,56 @@ func main() {
 	fmt.Println("[INIT] Go System Kernel Matrix Core with SQLite active on :8080/kernel-stream")
 	_ = http.ListenAndServe(":8080", nil)
 }
-// Minimal WebSocket connection hub configurationstype Client struct { Conn *websocket.Conn; Send chan []byte }type Hub struct { Clients map[*Client]bool; Broadcast chan []byte; Register chan *Client; Unregister chan *Client }func NewHub() *Hub { return &Hub{Clients: make(map[*Client]bool), Broadcast: make(chan []byte), Register: make(chan *Client), Unregister: make(chan *Client)} }func (h *Hub) Run() {
+
+// Minimal WebSocket connection hub configurations
+type Client struct {
+	Conn *websocket.Conn
+	Send chan []byte
+}
+type Hub struct {
+	Clients    map[*Client]bool
+	Broadcast  chan []byte
+	Register   chan *Client
+	Unregister chan *Client
+}
+
+func NewHub() *Hub {
+	return &Hub{Clients: make(map[*Client]bool), Broadcast: make(chan []byte), Register: make(chan *Client), Unregister: make(chan *Client)}
+}
+func (h *Hub) Run() {
 	for {
 		select {
-		case c := <-h.Register: h.Clients[c] = true
-		case c := <-h.Unregister: if _, ok := h.Clients[c]; ok { delete(h.Clients, c); close(c.Send) }
+		case c := <-h.Register:
+			h.Clients[c] = true
+		case c := <-h.Unregister:
+			if _, ok := h.Clients[c]; ok {
+				delete(h.Clients, c)
+				close(c.Send)
+			}
 		case msg := <-h.Broadcast:
-			for c := range h.Clients { select { case c.Send <- msg: default: delete(h.Clients, c); close(c.Send) } }
+			for c := range h.Clients {
+				select {
+				case c.Send <- msg:
+				default:
+					delete(h.Clients, c)
+					close(c.Send)
+				}
+			}
 		}
 	}
-}func (c *Client) WritePump() { defer c.Conn.Close(); for msg := range c.Send { _ = c.Conn.WriteMessage(websocket.TextMessage, msg) } }func (c *Client) ReadPump(h *Hub) { defer func() { h.Unregister <- c; c.Conn.Close() }(); for { _, _, err := c.Conn.ReadMessage(); if err != nil { break } } }
+}
+func (c *Client) WritePump() {
+	defer c.Conn.Close()
+	for msg := range c.Send {
+		_ = c.Conn.WriteMessage(websocket.TextMessage, msg)
+	}
+}
+func (c *Client) ReadPump(h *Hub) {
+	defer func() { h.Unregister <- c; c.Conn.Close() }()
+	for {
+		_, _, err := c.Conn.ReadMessage()
+		if err != nil {
+			break
+		}
+	}
+}

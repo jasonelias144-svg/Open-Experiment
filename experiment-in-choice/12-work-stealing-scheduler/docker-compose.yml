@@ -1,6 +1,8 @@
-version: '3.8'networks:
+version: '3.8'
+networks:
   scheduler-mesh:
-    driver: bridgeservices:
+    driver: bridge
+services:
   # 1. High-Performance Go Work-Stealing Actor Engine
   scheduler-core:
     build:

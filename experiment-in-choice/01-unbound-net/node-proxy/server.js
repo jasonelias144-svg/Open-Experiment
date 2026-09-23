@@ -1,9 +1,13 @@
-const http = require('http');const WebSocket = require('ws');
-// Initialize base system constantsconst PORT = 8080;const server = http.createServer((req, res) => {
+const http = require('http');
+const WebSocket = require('ws');
+// Initialize base system constants
+const PORT = 8080;
+const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('UNBOUND NET STREAMING NODE PROXY');
 });
-// Attach WebSocket layer directly onto the server instanceconst wss = new WebSocket.Server({ server });
+// Attach WebSocket layer directly onto the server instance
+const wss = new WebSocket.Server({ server });
 // Track client registration arrays
 wss.on('connection', (ws) => {
     console.log('[NODE PROXY] Transmit channel established with client.');

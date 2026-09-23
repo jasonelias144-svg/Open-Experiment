@@ -1,4 +1,5 @@
 package main
+
 import (
 	"encoding/json"
 	"fmt"
@@ -7,21 +8,27 @@ import (
 	"net/http"
 	"time"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
-// QuantumTelemetry packages circuit calculations for display viewportstype QuantumTelemetry struct {
+
+// QuantumTelemetry packages circuit calculations for display viewports
+type QuantumTelemetry struct {
 	Timestamp     string    `json:"timestamp"`
 	CycleStep     int64     `json:"cycleStep"`
 	StateVector   []string  `json:"stateVector"`   // String representations of complex amplitudes
 	Probabilities []float64 `json:"probabilities"` // Born rule probabilities: |ψ|^2
 	Entanglement  float64   `json:"entanglement"`  // Simplified Von Neumann entropy indicator
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
-// QubitRegister holds state vectors for a 2-qubit space (dimension 4)type QubitRegister struct {
+
+// QubitRegister holds state vectors for a 2-qubit space (dimension 4)
+type QubitRegister struct {
 	Amplitudes []complex128
 }
+
 func NewRegister() *QubitRegister {
 	// Initialize to ground state |00>
 	reg := &QubitRegister{
@@ -30,7 +37,9 @@ func NewRegister() *QubitRegister {
 	reg.Amplitudes[0] = cmplx.Rect(1, 0) // Amplitude 1 for |00>
 	return reg
 }
-// ApplyHadamard applies an H gate to the first qubit to trigger superpositionfunc (r *QubitRegister) ApplyHadamard() {
+
+// ApplyHadamard applies an H gate to the first qubit to trigger superposition
+func (r *QubitRegister) ApplyHadamard() {
 	invSqrt2 := 1.0 / math.Sqrt(2.0)
 	hMat := complex(invSqrt2, 0)
 
@@ -42,14 +51,16 @@ func NewRegister() *QubitRegister {
 	newAmps[3] = hMat*r.Amplitudes[1] - hMat*r.Amplitudes[3]
 	r.Amplitudes = newAmps
 }
-// ApplyCNOT targets qubit 1 using qubit 0 as control to link entanglement vectorsfunc (r *QubitRegister) ApplyCNOT() {
+
+// ApplyCNOT targets qubit 1 using qubit 0 as control to link entanglement vectors
+func (r *QubitRegister) ApplyCNOT() {
 	// Swaps amplitudes of |10> and |11> if control qubit is 1
 	r.Amplitudes[2], r.Amplitudes[3] = r.Amplitudes[3], r.Amplitudes[2]
 }
 func (r *QubitRegister) GetMetrics() ([]string, []float64, float64) {
 	ampsStr := make([]string, 4)
 	probs := make([]float64, 4)
-	
+
 	for i, amp := range r.Amplitudes {
 		ampsStr[i] = fmt.Sprintf("%.3f+%.3fi", real(amp), imag(amp))
 		probs[i] = math.Pow(cmplx.Abs(amp), 2)

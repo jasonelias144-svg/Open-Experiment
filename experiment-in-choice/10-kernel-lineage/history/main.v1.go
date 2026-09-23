@@ -8,9 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
-// StructuralPacket maps the asynchronous execution state spacetype StructuralPacket struct {
+// StructuralPacket maps the asynchronous execution state space
+type StructuralPacket struct {
 	Timestamp      string             `json:"timestamp"`
 	Heartbeat      int64              `json:"heartbeat"`
 	ActiveWrapper  string             `json:"activeWrapper"` // e.g., "(💎]", "[💎)"
@@ -118,17 +119,21 @@ func main() {
 	fmt.Println("[INIT] Go System Kernel Matrix Core streaming on :8080/kernel-stream")
 	_ = http.ListenAndServe(":8080", nil)
 }
-// Minimal WebSocket connection hub primitives infrastructure blockstype Client struct {
+// Minimal WebSocket connection hub primitives infrastructure blocks
+type Client struct {
 	Conn *websocket.Conn
 	Send chan []byte
-}type Hub struct {
+}
+type Hub struct {
 	Clients    map[*Client]bool
 	Broadcast  chan []byte
 	Register   chan *Client
 	Unregister chan *Client
-}func NewHub() *Hub {
+}
+func NewHub() *Hub {
 	return &Hub{Clients: make(map[*Client]bool), Broadcast: make(chan []byte), Register: make(chan *Client), Unregister: make(chan *Client)}
-}func (h *Hub) Run() {
+}
+func (h *Hub) Run() {
 	for {
 		select {
 		case c := <-h.Register: h.Clients[c] = true
@@ -139,10 +144,12 @@ func main() {
 			}
 		}
 	}
-}func (c *Client) WritePump() {
+}
+func (c *Client) WritePump() {
 	defer c.Conn.Close()
 	for msg := range c.Send { _ = c.Conn.WriteMessage(websocket.TextMessage, msg) }
-}func (c *Client) ReadPump(h *Hub) {
+}
+func (c *Client) ReadPump(h *Hub) {
 	defer func() { h.Unregister <- c; c.Conn.Close() }()
 	for { _, _, err := c.Conn.ReadMessage(); if err != nil { break } }
 }

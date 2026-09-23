@@ -1,4 +1,5 @@
 package main
+
 import (
 	"encoding/json"
 	"fmt"
@@ -6,36 +7,52 @@ import (
 	"net/http"
 	"time"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
+
 const (
 	BufferWidth  = 60
 	BufferHeight = 32
 )
-// RayTelemetry packages real-time frame buffers for browser presentationtype RayTelemetry struct {
-	Timestamp    string `json:"timestamp"`
-	FrameIndex   int64  `json:"frameIndex"`
-	RenderString string `json:"renderString"` // ASCII-mapped luminance shade map
+
+// RayTelemetry packages real-time frame buffers for browser presentation
+type RayTelemetry struct {
+	Timestamp     string  `json:"timestamp"`
+	FrameIndex    int64   `json:"frameIndex"`
+	RenderString  string  `json:"renderString"`  // ASCII-mapped luminance shade map
 	CalculationMs float64 `json:"calculationMs"` // Time delta required to resolve rays
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
-// Vector3 models foundational 3D spatial coordinate vectorstype Vector3 struct {
+
+// Vector3 models foundational 3D spatial coordinate vectors
+type Vector3 struct {
 	X, Y, Z float64
 }
-func (v Vector3) Add(o Vector3) Vector3 { return Vector3{v.X + o.X, v.Y + o.Y, v.Z + o.Z} }func (v Vector3) Scale(s float64) Vector3 { return Vector3{v.X * s, v.Y * s, v.Z * s} }func (v Vector3) Length() float64         { return math.Sqrt(v.X*v.X + v.Y*v.Y + v.Z*v.Z) }func (v Vector3) Normalize() Vector3 {
+
+func (v Vector3) Add(o Vector3) Vector3   { return Vector3{v.X + o.X, v.Y + o.Y, v.Z + o.Z} }
+func (v Vector3) Scale(s float64) Vector3 { return Vector3{v.X * s, v.Y * s, v.Z * s} }
+func (v Vector3) Length() float64         { return math.Sqrt(v.X*v.X + v.Y*v.Y + v.Z*v.Z) }
+func (v Vector3) Normalize() Vector3 {
 	l := v.Length()
-	if l == 0 { return Vector3{0, 0, 0} }
+	if l == 0 {
+		return Vector3{0, 0, 0}
+	}
 	return Vector3{v.X / l, v.Y / l, v.Z / l}
 }
-// Signed Distance Function representing a 3D Torus geometry shapefunc sdfTorus(p Vector3, tx, ty float64) float64 {
+
+// Signed Distance Function representing a 3D Torus geometry shape
+func sdfTorus(p Vector3, tx, ty float64) float64 {
 	q := Vector3{math.Sqrt(p.X*p.X+p.Z*p.Z) - tx, p.Y, 0}
 	return q.Length() - ty
 }
-// RotateY shifts coordinates around the Y-axis to provide dynamic animated motionfunc rotateY(p Vector3, theta float64) Vector3 {
-	c := Math.Cos(theta)
-	s := Math.Sin(theta)
+
+// RotateY shifts coordinates around the Y-axis to provide dynamic animated motion
+func rotateY(p Vector3, theta float64) Vector3 {
+	c := math.Cos(theta)
+	s := math.Sin(theta)
 	return Vector3{
 		X: p.X*c + p.Z*s,
 		Y: p.Y,
@@ -72,7 +89,7 @@ func evaluateFrame(angle float64) string {
 				currentPosition := rayOrigin.Add(rayDir.Scale(totalDistance))
 				// Apply rotation step parameters to the target coordinate fields
 				rotatedPos := rotateY(currentPosition, angle)
-				
+
 				distanceToSDF := sdfTorus(rotatedPos, 1.4, 0.55)
 
 				if distanceToSDF < 0.002 {
@@ -126,9 +143,9 @@ func main() {
 			calcTimeMs := float64(time.Since(startTime).Microseconds()) / 1000.0
 
 			packet := RayTelemetry{
-				Timestamp:    time.Now().Format(time.RFC3339),
-				FrameIndex:   frameCount,
-				RenderString: renderOutput,
+				Timestamp:     time.Now().Format(time.RFC3339),
+				FrameIndex:    frameCount,
+				RenderString:  renderOutput,
 				CalculationMs: calcTimeMs,
 			}
 

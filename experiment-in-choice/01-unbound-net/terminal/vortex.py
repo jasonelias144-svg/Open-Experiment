@@ -1,4 +1,6 @@
-import numpy as npimport timeimport math
+import numpy as np
+import time
+import math
 def generate_vortex_frequency(duration_ms=8000, sample_rate=44100):
     """Calculates the dynamic filter sweep values for the 32Hz core drone."""
     total_samples = int((duration_ms / 1000) * sample_rate)

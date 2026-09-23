@@ -1,4 +1,8 @@
-import osimport sysimport timeimport mathimport random
+import os
+import sys
+import time
+import math
+import random
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 def render_matrix_pulse(cycle_count, distortion=False):

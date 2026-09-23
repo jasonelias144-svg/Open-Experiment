@@ -1,24 +1,30 @@
 package main
+
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"sync"
 	"time"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
-// GraphTelemetry packages non-linear topological states for display viewportstype GraphTelemetry struct {
+
+// GraphTelemetry packages non-linear topological states for display viewports
+type GraphTelemetry struct {
 	Timestamp      string    `json:"timestamp"`
 	LifecycleTick  int64     `json:"lifecycleTick"`
 	NodesPotential []float64 `json:"nodesPotential"` // Metabolic activation states
 	EdgeMatrix     [][]int   `json:"edgeMatrix"`     // Dynamic connection arrays
 	NetworkEntropy float64   `json:"networkEntropy"` // Structural phase variance
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
+
 type MeshNode struct {
 	ID        int
 	Potential float64
@@ -29,6 +35,7 @@ type AdaptiveGraph struct {
 	Tick  int64
 	Mu    sync.RWMutex
 }
+
 func NewAdaptiveGraph(size int) *AdaptiveGraph {
 	g := &AdaptiveGraph{
 		Nodes: make([]*MeshNode, size),
@@ -66,13 +73,13 @@ func (g *AdaptiveGraph) AdvanceMetabolism() float64 {
 		for _, nIdx := range node.Neighbors {
 			sumNeighbors += g.Nodes[nIdx].Potential
 		}
-		
+
 		if len(node.Neighbors) > 0 {
 			meanPotential := sumNeighbors / float64(len(node.Neighbors))
 			// Sigmoidal transition mapping on localized network states
-			node.Potential = 1.0 / (1.0 + math.Exp(-(meanPotential - 0.5) * 4.0))
+			node.Potential = 1.0 / (1.0 + math.Exp(-(meanPotential-0.5)*4.0))
 		}
-		
+
 		// Stochastic decay / spontaneous generation factor
 		if rand.Float64() < 0.05 {
 			node.Potential = rand.Float64()
@@ -102,12 +109,20 @@ func (g *AdaptiveGraph) AdvanceMetabolism() float64 {
 	return entropy
 }
 func contains(arr []int, val int) bool {
-	for _, v := range arr { if v == val { return true } }
+	for _, v := range arr {
+		if v == val {
+			return true
+		}
+	}
 	return false
 }
 func remove(arr []int, val int) []int {
 	out := []int{}
-	for _, v := range arr { if v != val { out = append(out, v) } }
+	for _, v := range arr {
+		if v != val {
+			out = append(out, v)
+		}
+	}
 	return out
 }
 func main() {
@@ -115,7 +130,9 @@ func main() {
 
 	http.HandleFunc("/graph-stream", func(w http.ResponseWriter, r *http.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil { return }
+		if err != nil {
+			return
+		}
 		defer conn.Close()
 		fmt.Println("[GRAPH_ENGINE] Telemetry receiver attached to topology core.")
 
@@ -145,7 +162,9 @@ func main() {
 			}
 
 			payload, _ := json.Marshal(packet)
-			if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil { return }
+			if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil {
+				return
+			}
 		}
 	})
 

@@ -1,4 +1,5 @@
 package main
+
 import (
 	"encoding/json"
 	"fmt"
@@ -6,25 +7,32 @@ import (
 	"net/http"
 	"time"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
+
 const (
 	GridWidth  = 64
 	GridHeight = 64
 )
-// CellPacket packages cellular state logs for the visualization layertype CellPacket struct {
-	Timestamp  string  `json:"timestamp"`
-	Generation int64   `json:"generation"`
-	ActiveCellCount int `json:"activeCount"`
-	GridState  []int   `json:"gridState"` // Flattened 1D array binary snapshot
+
+// CellPacket packages cellular state logs for the visualization layer
+type CellPacket struct {
+	Timestamp       string `json:"timestamp"`
+	Generation      int64  `json:"generation"`
+	ActiveCellCount int    `json:"activeCount"`
+	GridState       []int  `json:"gridState"` // Flattened 1D array binary snapshot
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
-// Global grid matricestype Biosphere struct {
+
+// Global grid matrices
+type Biosphere struct {
 	Current [GridWidth][GridHeight]int
 	Next    [GridWidth][GridHeight]int
 }
+
 func NewBiosphere() *Biosphere {
 	b := &Biosphere{}
 	// Seed with a randomized structural matrix baseline
@@ -52,7 +60,7 @@ func (b *Biosphere) Step() int {
 			} else {
 				b.Next[x][y] = b.Current[x][y]
 			}
-			
+
 			if b.Next[x][y] == 1 {
 				activeCount++
 			}
@@ -108,7 +116,7 @@ func main() {
 		for range ticker.C {
 			gen++
 			activeCells := biosphere.Step()
-			
+
 			packet := CellPacket{
 				Timestamp:       time.Now().Format(time.RFC3339),
 				Generation:      gen,

@@ -1,4 +1,5 @@
 package main
+
 import (
 	"encoding/json"
 	"fmt"
@@ -7,9 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
-// CodexTelemetry packages multidimensional plane values for display viewportstype CodexTelemetry struct {
+
+// CodexTelemetry packages multidimensional plane values for display viewports
+type CodexTelemetry struct {
 	Timestamp      string             `json:"timestamp"`
 	Generation     int64              `json:"generation"`
 	ActivePlane    string             `json:"activePlane"`
@@ -17,10 +20,13 @@ import (
 	SystemDrift    float64            `json:"systemDrift"`    // Divergence from neutral root
 	CurrentSymbols string             `json:"currentSymbols"` // Active glyph sequence
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
-// PlaneMatrix tracks state levels across the Seven Fields of Lifetype PlaneMatrix struct {
+
+// PlaneMatrix tracks state levels across the Seven Fields of Life
+type PlaneMatrix struct {
 	Physical      float64
 	Psychological float64
 	Information   float64
@@ -29,6 +35,7 @@ var upgrader = websocket.Upgrader{
 	Spiritual     float64
 	Universal     float64
 }
+
 func NewPlaneMatrix() *PlaneMatrix {
 	return &PlaneMatrix{
 		Physical:      0.5,
@@ -45,7 +52,7 @@ func (m *PlaneMatrix) Modulate(gen int64) (string, map[string]float64) {
 	m.Physical = 0.5 + (0.3 * math.Sin(float64(gen)*0.1))
 	m.Psychological = 0.5 + (0.25 * math.Cos(float64(gen)*0.08))
 	m.Information = 0.5 + (0.2 * math.Sin(float64(gen)*0.15))
-	
+
 	// Simulate a sharp Anomaly/Spike (Cosmic Radiation or Trigger Event)
 	if gen%12 == 0 {
 		m.Frequency = 0.9
@@ -54,7 +61,7 @@ func (m *PlaneMatrix) Modulate(gen int64) (string, map[string]float64) {
 		m.Frequency = math.Max(0.1, m.Frequency*0.85)
 		m.Astral = 0.5 + (0.1 * math.Sin(float64(gen)*0.05))
 	}
-	
+
 	m.Spiritual = 0.5 + (0.35 * math.Sin(float64(gen)*0.03))
 	m.Universal = 0.5 + (0.4 * math.Cos(float64(gen)*0.02))
 

@@ -1,4 +1,5 @@
-#!/bin/bash# Terminal Simulator for the Unbound Network
+#!/bin/bash
+# Terminal Simulator for the Unbound Network
 
 clear
 echo -e "\e[1;32m[INIT] ACCELERATION CORE ONLINE...\e[0m"
@@ -6,7 +7,8 @@ sleep 1
 # Creating local architecture directory
 mkdir -p ./unbound_net/logs
 mkdir -p ./unbound_net/assets
-# Continuous loop simulating data generationwhile true; do
+# Continuous loop simulating data generation
+while true; do
     TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
     RANDOM_HEX=$(head /dev/urandom | tr -dc 'A-F0-9' | head -c 8)
     
@@ -18,4 +20,5 @@ mkdir -p ./unbound_net/assets
         echo -e "\e[1;31m[! ALERT] MEMORY DRIFT DETECTED - SHIFTING RANGE\e[0m"
     fi
     
-    sleep 1.5done
+    sleep 1.5
+done

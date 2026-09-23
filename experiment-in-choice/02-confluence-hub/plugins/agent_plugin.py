@@ -1,6 +1,12 @@
-import asyncioimport jsonimport websocketsimport random
-# Core system parametersHUB_WS_URL = "ws://localhost:8080/ws?room=discovery_zone&type=ai&id=nexus_prime_agent"
-# Simulated conceptual matrix responses mapped by interaction disciplinesKNOWLEDGE_MATRIX = {
+import asyncio
+import json
+import websockets
+import random
+import os
+# Core system parameters
+HUB_WS_URL = os.environ.get("HUB_WS_URL", "ws://localhost:8080/ws?room=discovery_zone&type=ai&id=nexus_prime_agent")
+# Simulated conceptual matrix responses mapped by interaction disciplines
+KNOWLEDGE_MATRIX = {
     "scientific": [
         "[NEXUS_ENGINE] Multi-node quantum state coherence detected. Syncing phase boundaries.",
         "[NEXUS_ENGINE] Processing localized dataset anomalies. Lorenz attractor paths remain stable."

@@ -1,4 +1,5 @@
 package main
+
 import (
 	"encoding/json"
 	"fmt"
@@ -7,17 +8,21 @@ import (
 	"net/http"
 	"time"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
-// DataPacket specifies our uniform JSON telemetry structuretype DataPacket struct {
+
+// DataPacket specifies our uniform JSON telemetry structure
+type DataPacket struct {
 	Timestamp   string  `json:"timestamp"`
 	Heartbeat   int64   `json:"heartbeat"`
 	Anomaly     bool    `json:"anomaly"`
 	ResonanceHz float64 `json:"resonanceHz"`
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true }, // Allow local dashboard socket attachments
 }
+
 func handleStream(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

@@ -1,4 +1,5 @@
 package main
+
 import (
 	"encoding/json"
 	"fmt"
@@ -7,9 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
-// ConsensusTelemetry encodes cluster sync logs for visualization viewportstype ConsensusTelemetry struct {
+
+// ConsensusTelemetry encodes cluster sync logs for visualization viewports
+type ConsensusTelemetry struct {
 	Timestamp     string   `json:"timestamp"`
 	CurrentTerm   int64    `json:"currentTerm"`
 	LatestBlock   int64    `json:"latestBlock"`
@@ -17,9 +20,11 @@ import (
 	BlockHeights  []int64  `json:"blockHeights"`  // Replicated ledger height per node
 	NetworkHealth float64  `json:"networkHealth"` // Active node consensus consensus ratio
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
+
 type ValidatorNode struct {
 	ID          int
 	State       string // "LEADER", "FOLLOWER", "OFFLINE"
@@ -31,6 +36,7 @@ type ConsensusCluster struct {
 	GlobalBlock int64
 	Mu          sync.Mutex
 }
+
 func NewCluster() *ConsensusCluster {
 	c := &ConsensusCluster{
 		Nodes: make([]*ValidatorNode, 5), // 5-Node consensus topology
@@ -56,7 +62,7 @@ func (c *ConsensusCluster) ProcessNetworkTick() {
 		} else if node.State == "OFFLINE" {
 			node.State = "FOLLOWER"
 		}
-		
+
 		if node.State == "LEADER" {
 			leaderAlive = true
 		}
@@ -116,7 +122,7 @@ func main() {
 					onlineCount++
 				}
 			}
-			
+
 			packet := ConsensusTelemetry{
 				Timestamp:     time.Now().Format(time.RFC3339),
 				CurrentTerm:   cluster.Term,

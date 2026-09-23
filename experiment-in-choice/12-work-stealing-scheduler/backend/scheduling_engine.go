@@ -1,37 +1,44 @@
 package main
+
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"sync"
 	"time"
 
-	"://github.com"
+	"github.com/gorilla/websocket"
 )
-// SchedulerTelemetry packages load balancing statistics for the visualization paneltype SchedulerTelemetry struct {
-	Timestamp      string  `json:"timestamp"`
-	SchedulerCycle int64   `json:"schedulerCycle"`
-	QueueSizes     []int   `json:"queueSizes"`     // Remaining computational tasks per worker
-	StealEvents    int64   `json:"stealEvents"`    // Cumulative work-stealing occurrences
-	TotalThroughput int64  `json:"totalThroughput"` // Successfully resolved processing blocks
-	SystemBalance  float64 `json:"systemBalance"`  // Gini coefficient of thread allocation efficiency
+
+// SchedulerTelemetry packages load balancing statistics for the visualization panel
+type SchedulerTelemetry struct {
+	Timestamp       string  `json:"timestamp"`
+	SchedulerCycle  int64   `json:"schedulerCycle"`
+	QueueSizes      []int   `json:"queueSizes"`      // Remaining computational tasks per worker
+	StealEvents     int64   `json:"stealEvents"`     // Cumulative work-stealing occurrences
+	TotalThroughput int64   `json:"totalThroughput"` // Successfully resolved processing blocks
+	SystemBalance   float64 `json:"systemBalance"`   // Gini coefficient of thread allocation efficiency
 }
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
+
 type WorkerActor struct {
 	ID        int
 	TaskQueue []int // Slice acting as a basic work queue deck
 	Mu        sync.Mutex
 }
 type CentralScheduler struct {
-	Workers     []*WorkerActor
-	Steals      int64
-	Throughput  int64
-	CycleCount  int64
-	Mu          sync.Mutex
+	Workers    []*WorkerActor
+	Steals     int64
+	Throughput int64
+	CycleCount int64
+	Mu         sync.Mutex
 }
+
 func NewCentralScheduler(workerCount int) *CentralScheduler {
 	s := &CentralScheduler{
 		Workers: make([]*WorkerActor, workerCount),
@@ -66,7 +73,7 @@ func (s *CentralScheduler) ExecuteWorkCycle() {
 	// Simulating parallel independent worker actor execution sweeps
 	for _, worker := range s.Workers {
 		worker.Mu.Lock()
-		
+
 		// If local queue contains computing blocks, process the topmost element
 		if len(worker.TaskQueue) > 0 {
 			worker.TaskQueue = worker.TaskQueue[1:]
@@ -152,7 +159,7 @@ func main() {
 			scheduler.ExecuteWorkCycle()
 			balanceMetric := scheduler.CalculateGiniEfficiency()
 
-			scheduler CentralScheduler.Mu.Lock()
+			scheduler.Mu.Lock()
 			qSizes := make([]int, len(scheduler.Workers))
 			for i, w := range scheduler.Workers {
 				w.Mu.Lock()

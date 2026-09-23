@@ -1,4 +1,5 @@
 package main
+
 import (
 	"database/sql"
 	"fmt"
@@ -7,12 +8,14 @@ import (
 	"net/http"
 	"time"
 
-	_ "://github.com"
+	_ "github.com/mattn/go-sqlite3"
 )
+
 const (
 	CriticalVelocityThreshold = 0.005
 	EvaluationWindow          = 20 // Samples to scan
 )
+
 func runImmuneAudit(db *sql.DB) {
 	// Query historical data tracking vectors from the persistence layer
 	rows, err := db.Query(`
@@ -49,7 +52,7 @@ func runImmuneAudit(db *sql.DB) {
 	if meanVelocity < CriticalVelocityThreshold {
 		fmt.Printf("\n\033[1;31m[!!! IMMUNE RESPONSE] CRITICAL DOGMA DETECTED // VELOCITY: %.6f < %.3f\033[0m\n", meanVelocity, CriticalVelocityThreshold)
 		fmt.Println("\033[1;33m[OVERRIDE] FIRING WEBHOOK TO CORE SIGNAL ROUTER // FORCING [💎) REOPENING...\033[0m")
-		
+
 		// Execute local loop override transaction
 		triggerCoreSofteningWebhook()
 	} else {
@@ -77,6 +80,6 @@ func main() {
 	fmt.Println("[INIT] Corrigibility Alertmanager running live background scans...")
 	for {
 		runImmuneAudit(db)
-		time.sleep(4 * time.Second) // Audit the ledger every 4 seconds
+		time.Sleep(4 * time.Second) // Audit the ledger every 4 seconds
 	}
 }
