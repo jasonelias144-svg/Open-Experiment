@@ -1,0 +1,28 @@
+version: '3.8'
+networks:
+  biosphere-net:
+    driver: bridge
+services:
+  # 1. Toroidal Cellular Computation Engine
+  cellular-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - biosphere-net
+    restart: always
+
+  # 2. Bioluminescent Canvas & Polyphonic Sound Server
+  client-viewport:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - biosphere-net
+    depends_on:
+      - cellular-core
+    restart: always

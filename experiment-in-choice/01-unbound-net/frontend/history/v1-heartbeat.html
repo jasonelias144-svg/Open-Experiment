@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // REAL-TIME RENDERING ATLAS</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #0A0A0F; overflow: hidden; font-family: monospace; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #telemetry-overlay { position: absolute; top: 20px; left: 20px; color: #00FF66; pointer-events: none; font-size: 14px; line-height: 1.5; text-shadow: 0 0 5px #00FF66; }
+    </style>
+</head>
+<body>
+    <div id="telemetry-overlay">
+        [SYSTEM STATUS: INTERCEPTING STREAM]<br>
+        RESONANCE: <span id="hz-val">32.00</span> Hz<br>
+        HEARTBEAT: <span id="hb-val">0</span><br>
+        DRIFT STATE: <span id="df-val">STABLE</span>
+    </div>
+    <canvas id="matrix-canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Resize parameters to match screen bounds
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Historical packet array for line rendering
+        const history = [];
+        const maxHistory = 100;
+
+        // Establish real-time WebSocket bridge
+        const socket = new WebSocket('ws://localhost:8080');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // Update Text Overlay
+            document.getElementById('hz-val').innerText = data.resonanceHz.toFixed(2);
+            document.getElementById('hb-val').innerText = data.heartbeat;
+            document.getElementById('df-val').innerText = data.anomaly ? 'CRITICAL SPIKE' : 'STABLE';
+            document.getElementById('df-val').style.color = data.anomaly ? '#FF0055' : '#00FF66';
+
+            // Push into historical rendering queue
+            history.push(data);
+            if (history.length > maxHistory) history.shift();
+        };
+
+        // Continuous animation rendering engine loop
+        function draw() {
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.15)'; // Natural motion blur trailing
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (history.length < 2) {
+                requestAnimationFrame(draw);
+                return;
+            }
+
+            ctx.beginPath();
+            ctx.lineWidth = 2;
+
+            for (let i = 0; i < history.length; i++) {
+                const packet = history[i];
+                const x = (canvas.width / maxHistory) * i;
+                
+                // Translate resonance frequency mathematically to Y coordinates
+                const centerY = canvas.height / 2;
+                const amplitude = (packet.resonanceHz - 32.0) * 12;
+                const y = centerY - amplitude;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+
+                // If anomaly packet is active, explode into particle vectors
+                if (packet.anomaly && i === history.length - 1) {
+                    ctx.strokeStyle = '#FF0055';
+                    ctx.shadowColor = '#FF0055';
+                    ctx.shadowBlur = 15;
+                    ctx.arc(x, y, 6, 0, Math.PI * 2);
+                    ctx.fillStyle = '#FF0055';
+                    ctx.fill();
+                }
+            }
+
+            // Apply style configurations
+            if (!history[history.length - 1].anomaly) {
+                ctx.strokeStyle = '#00FF66';
+                ctx.shadowColor = '#00FF66';
+                ctx.shadowBlur = 8;
+            }
+
+            ctx.stroke();
+            ctx.shadowBlur = 0; // Reset blur for next pass
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+version: '3.8'networks:
+  scheduler-mesh:
+    driver: bridgeservices:
+  # 1. High-Performance Go Work-Stealing Actor Engine
+  scheduler-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - scheduler-mesh
+    restart: always
+
+  # 2. Nginx Web Front-End: Queue Saturation HUD Viewport
+  scheduler-hud:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - scheduler-mesh
+    depends_on:
+      - scheduler-core
+    restart: always
+
+  # 3. Prometheus Telemetry Performance Scraper
+  metrics-monitor:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - scheduler-mesh
+    depends_on:
+      - scheduler-core
+    restart: always

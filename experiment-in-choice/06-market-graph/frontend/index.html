@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // LIQUIDITY GRAPH HUD</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #030305; overflow: hidden; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; color: #D5D5DF; }
+        #exchange-hud { width: 750px; padding: 25px; background: #08080E; border: 1px solid #1B1E2E; box-shadow: 0 0 35px rgba(255, 170, 0, 0.08); border-radius: 6px; }
+        .hud-header { color: #FF9F00; font-size: 11px; text-transform: uppercase; margin-bottom: 25px; letter-spacing: 1.5px; border-bottom: 1px solid #1B1E2E; padding-bottom: 8px; }
+        
+        /* Master Graph Presentation Canvas */
+        #viewport-frame { position: relative; width: 100%; height: 320px; background: #020204; border: 1px solid #1B1E2E; border-radius: 4px; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* General Metrics Card Array */
+        #ticker-deck { margin-top: 25px; padding-top: 15px; border-top: 1px solid #1B1E2E; display: flex; justify-content: space-between; font-size: 11px; color: #55576B; }
+        .data-point { color: #00FFBB; font-weight: bold; text-shadow: 0 0 5px rgba(0,255,187,0.3); }
+        .data-point.alert { color: #FF0055; text-shadow: 0 0 5px rgba(255,0,85,0.4); }
+    </style>
+</head>
+<body>
+
+    <div id="exchange-hud">
+        <div class="hud-header">
+            [HFT EXCHANGE ROUTER POOL METRICS] // ORDER INDEX <span id="idx-val" style="color:#FFF;">0</span>
+        </div>
+        
+        <div id="viewport-frame">
+            <canvas id="market-canvas"></canvas>
+        </div>
+
+        <div id="ticker-deck">
+            <div>TRIANGULAR ARBITRAGE DELTA: <span id="arb-val" class="data-point">0.00</span></div>
+            <div>LIQUIDITY FORMAT: x * y = k CONSTANT PRODUCT</div>
+            <div>SPREAD STATUS: <span id="status-val" class="data-point">EFFICIENT</span></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('market-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Node spatial coordinate mappings for a 3-way triangular arbitrage circuit
+        const nodeCoordinates = {
+            "USD": { x: 0.50, y: 0.20, label: "FIAT: USD" },
+            "BTC": { x: 0.20, y: 0.75, label: "CRYPTO: BTC" },
+            "ETH": { x: 0.80, y: 0.75, label: "CRYPTO: ETH" }
+        };
+
+        const socket = new WebSocket('ws://localhost:8080/market-stream');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            document.getElementById('idx-val').innerText = data.updateIndex;
+            document.getElementById('arb-val').innerText = data.arbitrageDelta.toFixed(4);
+
+            // Flag system inefficiencies visually if the pricing gap crosses a target threshold
+            const arbField = document.getElementById('arb-val');
+            const statusField = document.getElementById('status-val');
+            const isInefficient = data.arbitrageDelta > 85.0; // Dynamic scale threshold baseline
+
+            if (isInefficient) {
+                arbField.className = "data-point alert";
+                statusField.innerText = "ARBITRAGE WINDOW OPEN";
+                statusField.className = "data-point alert";
+            } else {
+                arbField.className = "data-point";
+                statusField.innerText = "BALANCED MARGINS";
+                statusField.className = "data-point";
+            }
+
+            renderMarketGraph(data.poolPrices, data.reserves, isInefficient);
+        };
+
+        function renderMarketGraph(prices, reserves, flashArb) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Define pool paths mapping onto coordinates
+            const connections = [
+                { from: "BTC", to: "USD", name: "BTC_USD", label: "BTC/USD" },
+                { from: "ETH", to: "BTC", name: "ETH_BTC", label: "ETH/BTC" },
+                { from: "ETH", to: "USD", name: "ETH_USD", label: "ETH/USD" }
+            ];
+
+            // Phase 1: Draw concurrent order books vector pathways
+            connections.forEach(pool => {
+                const nodeA = nodeCoordinates[pool.from];
+                const nodeB = nodeCoordinates[pool.to];
+                const ax = nodeA.x * w, ay = nodeA.y * h;
+                const bx = nodeB.x * w, by = nodeB.y * h;
+
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(bx, by);
+
+                if (flashArb) {
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = "rgba(255, 0, 85, 0.7)";
+                    ctx.shadowColor = "#FF0055";
+                    ctx.shadowBlur = 8;
+                } else {
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeStyle = "rgba(255, 159, 0, 0.35)";
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0; // Immediate shadow flush
+
+                // Render real-time price tick variables along path lines
+                const midX = (ax + bx) / 2;
+                const midY = (ay + by) / 2;
+                ctx.fillStyle = "#8E92A5";
+                ctx.font = "10px monospace";
+                ctx.textAlign = "center";
+                ctx.fillText(`${pool.label}: ${prices[pool.name].toFixed(2)}`, midX, midY - 6);
+            });
+
+            // Phase 2: Render somatic reserve hubs
+            Object.keys(nodeCoordinates).forEach(key => {
+                const node = nodeCoordinates[key];
+                const nx = node.x * w, ny = node.y * h;
+
+                ctx.beginPath();
+                ctx.arc(nx, ny, 24, 0, Math.PI * 2);
+                ctx.fillStyle = "#05050A";
+                ctx.fill();
+                ctx.strokeStyle = flashArb ? "#FF0055" : "#FF9F00";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = "#FFF";
+                ctx.font = "10px monospace";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(key, nx, ny);
+            });
+        }
+
+        socket.onclose = () => {
+            document.getElementById('status-val').innerHTML = "<span style='color:#FF0055;'>DISCONNECTED // BOOK HALTED</span>";
+        };
+    </script>
+</body>
+</html>

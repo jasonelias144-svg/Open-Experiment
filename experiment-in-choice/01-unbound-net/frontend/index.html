@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // CONSTELLATION MESH</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #050508; overflow: hidden; font-family: monospace; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #telemetry-overlay { position: absolute; top: 20px; left: 20px; color: #00FF66; pointer-events: none; font-size: 14px; line-height: 1.5; text-shadow: 0 0 5px #00FF66; }
+        #audio-prompt { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00FF66; border: 1px solid #00FF66; padding: 15px 30px; background: rgba(5,5,8,0.9); cursor: pointer; text-shadow: 0 0 5px #00FF66; box-shadow: 0 0 10px rgba(0,255,102,0.3); z-index: 10; }
+    </style>
+</head>
+<body>
+    <div id="audio-prompt" onclick="initAudioEngine()">[ INTERACT TO INITIALIZE CONSTELLATION MESH ]</div>
+    
+    <div id="telemetry-overlay">
+        [GEOMETRY LAYER: INTERCONNECTED WIREFRAME CONSTELLATION]<br>
+        RESONANCE: <span id="hz-val">32.00</span> Hz<br>
+        PAN COORDINATE: <span id="pan-val">0.00</span><br>
+        MAX PROXIMITY REACH: 80 px<br>
+        SYSTEM STATUS: <span id="df-val">STABLE</span>
+    </div>
+    <canvas id="matrix-canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let audioCtx = null, mainOscillator = null, subOscillator = null, lowpassFilter = null, spatialPanner = null;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function initAudioEngine() {
+            document.getElementById('audio-prompt').style.display = 'none';
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            mainOscillator = audioCtx.createOscillator();
+            subOscillator = audioCtx.createOscillator();
+            lowpassFilter = audioCtx.createBiquadFilter();
+            spatialPanner = audioCtx.createStereoPanner();
+            const mainGain = audioCtx.createGain();
+            
+            mainOscillator.type = 'sawtooth';
+            mainOscillator.frequency.setValueAtTime(32.0, audioCtx.currentTime);
+            subOscillator.type = 'sine';
+            subOscillator.frequency.setValueAtTime(16.0, audioCtx.currentTime);
+            
+            lowpassFilter.type = 'lowpass';
+            lowpassFilter.frequency.setValueAtTime(120, audioCtx.currentTime);
+            lowpassFilter.Q.setValueAtTime(8, audioCtx.currentTime);
+            
+            spatialPanner.pan.setValueAtTime(0.0, audioCtx.currentTime);
+            mainGain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            
+            mainOscillator.connect(lowpassFilter);
+            subOscillator.connect(lowpassFilter);
+            lowpassFilter.connect(spatialPanner);
+            spatialPanner.connect(mainGain);
+            mainGain.connect(audioCtx.destination);
+            
+            mainOscillator.start();
+            subOscillator.start();
+        }
+
+        const particles = [];
+        // Density is slightly lower to conserve CPU performance during full proximity cross-scans
+        const numParticles = 250;
+        let baseFOV = 250; 
+
+        for (let i = 0; i < numParticles; i++) {
+            particles.push({
+                x: (Math.random() - 0.5) * 700,
+                y: (Math.random() - 0.5) * 700,
+                z: Math.random() * 700,
+                baseX: 0, baseY: 0,
+                projX: 0, projY: 0, activeScale: 0 // Cache computed 2D screen positions
+            });
+            particles[i].baseX = particles[i].x;
+            particles[i].baseY = particles[i].y;
+        }
+
+        let currentResonance = 32.0;
+        let rotationAngle = 0;
+        let cameraTime = 0;
+        let burstFactor = 0;
+
+        const socket = new WebSocket('ws://localhost:8080');
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const internalPan = Math.sin(data.heartbeat * 0.15);
+            currentResonance = data.resonanceHz;
+            
+            document.getElementById('hz-val').innerText = data.resonanceHz.toFixed(2);
+            document.getElementById('pan-val').innerText = internalPan.toFixed(2);
+            document.getElementById('df-val').innerText = data.anomaly ? 'CRITICAL SPIKE' : 'STABLE';
+            document.getElementById('df-val').style.color = data.anomaly ? '#FF0055' : '#00FF66';
+
+            if (audioCtx && lowpassFilter && mainOscillator && spatialPanner) {
+                spatialPanner.pan.linearRampToValueAtTime(internalPan, audioCtx.currentTime + 0.05);
+                if (data.anomaly) {
+                    burstFactor = 30.0; 
+                    lowpassFilter.frequency.exponentialRampToValueAtTime(1600, audioCtx.currentTime + 0.02);
+                    mainOscillator.frequency.setValueAtTime(data.resonanceHz, audioCtx.currentTime);
+                    lowpassFilter.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.4);
+                    mainOscillator.frequency.exponentialRampToValueAtTime(32.0, audioCtx.currentTime + 0.4);
+                } else {
+                    mainOscillator.frequency.linearRampToValueAtTime(data.resonanceHz, audioCtx.currentTime + 0.1);
+                }
+            }
+        };
+
+        function draw() {
+            ctx.fillStyle = 'rgba(5, 5, 8, 0.3)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            rotationAngle += (currentResonance / 32.0) * 0.003;
+            cameraTime += 0.008;
+            burstFactor *= 0.92;
+
+            const cameraOffsetX = Math.sin(cameraTime * 0.4) * 100;
+            const cameraOffsetY = Math.cos(cameraTime * 0.2) * 60;
+            const dynamicFOV = baseFOV + (Math.sin(cameraTime * 0.6) * 30);
+
+            const cosRot = Math.cos(rotationAngle);
+            const sinRot = Math.sin(rotationAngle);
+
+            // Phase 1: Coordinate translation and 2D projections calculation loop
+            for (let i = 0; i < numParticles; i++) {
+                let p = particles[i];
+
+                p.z -= 1.0 + (currentResonance * 0.04); 
+                if (p.z <= 0) p.z = 700; 
+
+                let rotX = p.baseX * cosRot - p.z * sinRot;
+                let rotZ = p.baseX * sinRot + p.z * cosRot;
+                let rotY = p.baseY + (Math.sin(p.z * 0.015 + rotationAngle) * burstFactor);
+
+                const screenScale = dynamicFOV / (dynamicFOV + rotZ);
+                p.projX = ((rotX - cameraOffsetX) * screenScale) + (canvas.width / 2);
+                p.projY = ((rotY - cameraOffsetY) * screenScale) + (canvas.height / 2);
+                p.activeScale = screenScale;
+            }
+
+            // Phase 2: Compute link meshes via proximity cross-scanning matrix
+            for (let i = 0; i < numParticles; i++) {
+                let pA = particles[i];
+                if (pA.projX < 0 || pA.projX > canvas.width || pA.projY < 0 || pA.projY > canvas.height) continue;
+
+                for (let j = i + 1; j < numParticles; j++) {
+                    let pB = particles[j];
+                    
+                    // Quick absolute bounding box pass before running dense square root calculation
+                    const dx = pA.projX - pB.projX;
+                    const dy = pA.projY - pB.projY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 80) {
+                        const linkAlpha = (1 - (distance / 80)) * pA.activeScale * 0.4;
+                        ctx.beginPath();
+                        ctx.moveTo(pA.projX, pA.projY);
+                        ctx.lineTo(pB.projX, pB.projY);
+                        ctx.lineWidth = 0.5 * pA.activeScale;
+                        
+                        if (burstFactor > 4) {
+                            ctx.strokeStyle = `rgba(255, 0, 85, ${linkAlpha * 1.5})`;
+                        } else {
+                            ctx.strokeStyle = `rgba(0, 255, 102, ${linkAlpha})`;
+                        }
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // Phase 3: Single loop node drawing pass
+            for (let i = 0; i < numParticles; i++) {
+                let p = particles[i];
+                if (p.projX >= 0 && p.projX <= canvas.width && p.projY >= 0 && p.projY <= canvas.height) {
+                    const particleSize = Math.max(0.7, p.activeScale * 3);
+                    ctx.beginPath();
+                    ctx.arc(p.projX, p.projY, particleSize, 0, Math.PI * 2);
+                    ctx.fillStyle = burstFactor > 4 ? `rgba(255, 0, 85, ${p.activeScale})` : `rgba(0, 255, 102, ${p.activeScale})`;
+                    ctx.fill();
+                }
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

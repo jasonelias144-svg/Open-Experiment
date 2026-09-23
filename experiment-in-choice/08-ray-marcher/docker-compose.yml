@@ -1,0 +1,28 @@
+version: '3.8'
+networks:
+  graphics-net:
+    driver: bridge
+services:
+  # 1. 3D Signed Distance Field (SDF) Matrix Computation Engine
+  ray-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - graphics-net
+    restart: always
+
+  # 2. Green Phosphorus CRT Raster Presentation Panel
+  terminal-viewport:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - graphics-net
+    depends_on:
+      - ray-core
+    restart: always

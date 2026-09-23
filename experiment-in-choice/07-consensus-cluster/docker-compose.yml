@@ -1,0 +1,28 @@
+version: '3.8'
+networks:
+  consensus-net:
+    driver: bridge
+services:
+  # 1. State Machine Replication & Consensus Computation Engine
+  consensus-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - consensus-net
+    restart: always
+
+  # 2. Replicated Ledger Height & Validator Cluster Portal
+  cluster-hud:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - consensus-net
+    depends_on:
+      - consensus-core
+    restart: always

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // CONSENSUS TELEMETRY</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #05050A; overflow: hidden; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; color: #D5D5E5; }
+        #cluster-workspace { width: 750px; padding: 25px; background: #0A0A12; border: 1px solid #1E1E38; box-shadow: 0 0 35px rgba(0, 255, 180, 0.08); border-radius: 6px; }
+        .hud-header { color: #00FFBB; font-size: 11px; text-transform: uppercase; margin-bottom: 25px; letter-spacing: 1.5px; border-bottom: 1px solid #1E1E38; padding-bottom: 8px; }
+        
+        /* Master Network Diagram Frame */
+        #viewport-frame { position: relative; width: 100%; height: 340px; background: #020205; border: 1px solid #1E1E38; border-radius: 4px; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* General Metrics Card Array */
+        #ledger-deck { margin-top: 25px; padding-top: 15px; border-top: 1px solid #1E1E38; display: flex; justify-content: space-between; font-size: 11px; color: #555770; }
+        .data-point { color: #00FFBB; font-weight: bold; text-shadow: 0 0 5px rgba(0,255,187,0.3); }
+        .data-point.alert { color: #FF3366; text-shadow: 0 0 5px rgba(255,51,102,0.4); }
+    </style>
+</head>
+<body>
+
+    <div id="cluster-workspace">
+        <div class="hud-header">
+            [REPLICATED STATE LEDGER CONFLICT RESOLUTION MONITOR] // TERM <span id="term-val" style="color:#FFF;">1</span>
+        </div>
+        
+        <div id="viewport-frame">
+            <canvas id="cluster-canvas"></canvas>
+        </div>
+
+        <div id="ledger-deck">
+            <div>GLOBAL BLOCK HEIGHT: <span id="block-val" class="data-point">0</span></div>
+            <div>CLUSTER QUORUM STATUS: <span id="status-val" class="data-point">HEALTHY</span></div>
+            <div>NETWORK PARTICIPATION: <span id="health-val" class="data-point">100.0%</span></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('cluster-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const socket = new WebSocket('ws://localhost:8080/consensus-stream');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            document.getElementById('term-val').innerText = data.currentTerm;
+            document.getElementById('block-val').innerText = data.latestBlock;
+            document.getElementById('health-val').innerText = data.networkHealth.toFixed(1) + "%";
+
+            const statusField = document.getElementById('status-val');
+            const healthField = document.getElementById('health-val');
+            
+            // Check if cluster size falls below standard fault-tolerance constraints (Quorum = 2f+1)
+            const hasQuorum = data.networkHealth >= 60.0;
+            if (!hasQuorum) {
+                statusField.innerText = "LIVENESS FAULT // HALTED";
+                statusField.className = "data-point alert";
+                healthField.className = "data-point alert";
+            } else {
+                statusField.innerText = "REPLICATING AGREEMENT";
+                statusField.className = "data-point";
+                healthField.className = "data-point";
+            }
+
+            renderClusterMap(data.nodeStates, data.blockHeights);
+        };
+
+        function renderClusterMap(nodeStates, blockHeights) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width;
+            const h = canvas.height;
+            const centerX = w / 2;
+            const centerY = h / 2;
+            const radius = 105;
+
+            // Generate circular ring positions for 5 uniform validator positions
+            const nodePositions = [];
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+                nodePositions.push({
+                    x: centerX + Math.cos(angle) * radius,
+                    y: centerY + Math.sin(angle) * radius,
+                    id: i
+                });
+            }
+
+            // Find current active network leader to map out sync pathways
+            let leaderIndex = -1;
+            for (let i = 0; i < nodeStates.length; i++) {
+                if (nodeStates[i] === "LEADER") leaderIndex = i;
+            }
+
+            // Phase 1: Draw RPC heartbeat/replication routing arrays
+            if (leaderIndex !== -1 && nodeStates[leaderIndex] !== "OFFLINE") {
+                const leaderPos = nodePositions[leaderIndex];
+                nodePositions.forEach(node => {
+                    if (node.id === leaderIndex || nodeStates[node.id] === "OFFLINE") return;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(leaderPos.x, leaderPos.y);
+                    ctx.lineTo(node.x, node.y);
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = "rgba(0, 255, 187, 0.25)";
+                    ctx.stroke();
+                });
+            }
+
+            // Phase 2: Draw individual consensus somatic validation nodes
+            nodePositions.forEach(node => {
+                const state = nodeStates[node.id];
+                const height = blockHeights[node.id];
+
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 22, 0, Math.PI * 2);
+                ctx.fillStyle = "#030307";
+                ctx.fill();
+
+                // Style configurations tracking active validator states
+                if (state === "LEADER") {
+                    ctx.strokeStyle = "#00FFBB";
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = "#00FFBB";
+                    ctx.shadowBlur = 6;
+                } else if (state === "FOLLOWER") {
+                    ctx.strokeStyle = "#00A8FF";
+                    ctx.lineWidth = 1.5;
+                } else {
+                    ctx.strokeStyle = "#FF3366";
+                    ctx.lineWidth = 1;
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0; // Immediate shadow flush
+
+                // Render interior node index identifiers
+                ctx.fillStyle = "#A5A7C0";
+                ctx.font = "10px monospace";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(`N_0${node.id}`, node.x, node.y - 4);
+
+                // Draw external block height progression indices underneath rings
+                ctx.fillStyle = state === "OFFLINE" ? "#FF3366" : "#00A8FF";
+                ctx.font = "9px monospace";
+                ctx.fillText(`B:${height}`, node.x, node.y + 10);
+            });
+        }
+
+        socket.onclose = () => {
+            document.getElementById('status-val').innerHTML = "<span style='color:#FF3366;'>CRITICAL: DISCONNECTED // CLUSTER UNREACHABLE</span>";
+        };
+    </script>
+</body>
+</html>

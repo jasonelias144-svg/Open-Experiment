@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>THE CONFLUENCE HUB // COLLABORATION MATRIX</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { height: 100%; background: #07070C; color: #E0E0E6; font-family: monospace; overflow: hidden; }
+        
+        /* Master Grid Layout Matrix */
+        #workspace-container { display: grid; grid-template-columns: 240px 1fr 300px; height: 100vh; }
+        
+        /* Left Control Array Vector */
+        #discipline-sidebar { background: #0B0B12; border-right: 1px solid #1A1A2E; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .sidebar-header { color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px; }
+        .discipline-tab { padding: 12px; border: 1px solid #1A1A2E; background: #0D0D16; color: #888; cursor: pointer; border-radius: 4px; transition: all 0.2s ease; text-align: left; }
+        .discipline-tab.active { border-color: #00FF66; color: #00FF66; text-shadow: 0 0 5px #00FF66; background: rgba(0, 255, 102, 0.05); }
+        .discipline-tab:hover:not(.active) { border-color: #333; color: #FFF; }
+        
+        /* Center Communication Matrix Room */
+        #chat-nexus { display: flex; flex-direction: column; background: #07070C; height: 100%; }
+        #room-header { padding: 20px; border-bottom: 1px solid #1A1A2E; background: #090910; display: flex; justify-content: space-between; align-items: center; }
+        #room-title { color: #00FF66; font-weight: bold; font-size: 14px; text-shadow: 0 0 5px #00FF66; }
+        #message-stream { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        
+        /* Message Rendering Bubbles */
+        .msg-frame { max-width: 80%; padding: 12px; border-radius: 4px; animation: fadeIn 0.15s ease-out; line-height: 1.4; }
+        .msg-frame.human { background: #11111C; border: 1px solid #1D1D33; align-self: flex-start; }
+        .msg-frame.ai { background: #061A10; border: 1px solid #00FF66; align-self: flex-end; color: #A3FFA3; }
+        .msg-meta { font-size: 10px; color: #555; margin-bottom: 4px; display: flex; gap: 10px; }
+        .msg-meta .tag { text-transform: uppercase; font-weight: bold; }
+        .msg-meta .tag.human-tag { color: #5B82FF; }
+        .msg-meta .tag.ai-tag { color: #00FF66; }
+        
+        /* Input Dispatch Triggers */
+        #dispatch-bar { padding: 20px; background: #090910; border-top: 1px solid #1A1A2E; display: flex; gap: 10px; }
+        #message-input { flex: 1; background: #05050A; border: 1px solid #1A1A2E; color: #00FF66; padding: 12px; border-radius: 4px; font-family: monospace; outline: none; }
+        #message-input:focus { border-color: #00FF66; }
+        #submit-btn { background: #00FF66; color: #000; border: none; padding: 0 24px; border-radius: 4px; font-weight: bold; cursor: pointer; font-family: monospace; }
+        #submit-btn:hover { background: #33FF88; }
+        
+        /* Right Side Metric Stack Data */
+        #telemetry-sidebar { background: #0B0B12; border-left: 1px solid #1A1A2E; padding: 20px; font-size: 12px; display: flex; flex-direction: column; gap: 15px; }
+        .metric-card { background: #0D0D16; border: 1px solid #1A1A2E; padding: 12px; border-radius: 4px; }
+        .metric-card h4 { color: #666; font-size: 10px; margin-bottom: 6px; letter-spacing: 0.5px; }
+        .metric-card div { color: #00FF66; font-weight: bold; text-shadow: 0 0 5px #00FF66; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div id="workspace-container">
+        
+        <!-- Left Selection Array -->
+        <div id="discipline-sidebar">
+            <div class="sidebar-header">Core Disciplines</div>
+            <button class="discipline-tab active" onclick="switchContext('philosophical')"># philosophical</button>
+            <button class="discipline-tab" onclick="switchContext('scientific')"># scientific</button>
+            <button class="discipline-tab" onclick="switchContext('tech')"># technology</button>
+            <button class="discipline-tab" onclick="switchContext('artistic')"># artistic</button>
+            <button class="discipline-tab" onclick="switchContext('social')"># social</button>
+        </div>
+
+        <!-- Center Workspace Core -->
+        <div id="chat-nexus">
+            <div id="room-header">
+                <div id="room-title">CHANNELS MATRIX // #<span id="active-title">philosophical</span></div>
+                <div style="font-size: 11px; color: #444;">ID: base_matrix_room</div>
+            </div>
+            
+            <div id="message-stream">
+                <!-- Data frame objects output dynamically here -->
+            </div>
+
+            <div id="dispatch-bar">
+                <input type="text" id="message-input" placeholder="Transmit telemetry packet down the channel wire..." onkeypress="checkEnter(event)">
+                <button id="submit-btn" onclick="dispatchPacket()">SEND ➡️</button>
+            </div>
+        </div>
+
+        <!-- Right Side Matrix Telemetry Monitoring Panel -->
+        <div id="telemetry-sidebar">
+            <div class="sidebar-header">Telemetry Monitoring</div>
+            <div class="metric-card">
+                <h4>INTERFACE METRICS</h4>
+                <div id="node-status">LINK MOUNTED</div>
+            </div>
+            <div class="metric-card">
+                <h4>DATA THREAD PACKETS LOGGED</h4>
+                <div id="packet-counter">00000000</div>
+            </div>
+            <div class="metric-card">
+                <h4>LAST SOURCE SPECIFICATION</h4>
+                <div id="last-sender">NONE</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let socket = null;
+        let activeContext = 'philosophical';
+        let packetCount = 0;
+        const targetRoom = "discovery_zone";
+        const clientIdentity = "web_desk_node_" + Math.floor(Math.random() * 1000);
+
+        function openSocketBridge() {
+            // Establish socket connection pipeline targeting local Go servers
+            socket = new WebSocket(`ws://localhost:8080/ws?room=${targetRoom}&type=human&id=${clientIdentity}`);
+
+            socket.onmessage = (event) => {
+                const packet = JSON.parse(event.data);
+                
+                // Track aggregate global packets streaming downstream
+                packetCount++;
+                document.getElementById('packet-counter').innerText = String(packetCount).padStart(8, '0');
+                document.getElementById('last-sender').innerText = packet.senderId.toUpperCase();
+
+                // Only render the packet onto the screen if it maps cleanly onto our active viewing context channel
+                if (packet.contextType === activeContext) {
+                    renderMessageFrame(packet);
+                }
+            };
+
+            socket.onclose = () => {
+                document.getElementById('node-status').innerText = "DISCONNECTED";
+                document.getElementById('node-status').style.color = "#FF0055";
+                // Exponential backup mapping attempts go here in cluster models
+            };
+        }
+
+        function switchContext(newContext) {
+            activeContext = newContext;
+            document.getElementById('active-title').innerText = newContext;
+            
+            // Toggle highlight visual parameters on tab elements
+            document.querySelectorAll('.discipline-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.innerText.includes(newContext)) tab.classList.add('active');
+            });
+
+            // Wipe screen container and re-initialize layout view space
+            document.getElementById('message-stream').innerHTML = '';
+        }
+
+        function renderMessageFrame(packet) {
+            const stream = document.getElementById('message-stream');
+            const frame = document.createElement('div');
+            
+            const isAI = packet.senderType === 'ai';
+            frame.className = `msg-frame ${isAI ? 'ai' : 'human'}`;
+            
+            frame.innerHTML = `
+                <div class="msg-meta">
+                    <span class="tag ${isAI ? 'ai-tag' : 'human-tag'}">${packet.senderType}</span>
+                    <span>ID: ${packet.senderId}</span>
+                </div>
+                <div>${packet.content}</div>
+            `;
+            
+            stream.appendChild(frame);
+            stream.scrollTop = stream.scrollHeight; // Autoscroll to target line footprint
+        }
+
+        function dispatchPacket() {
+            const field = document.getElementById('message-input');
+            const dataStr = field.value.trim();
+            if (!dataStr || !socket) return;
+
+            const dispatchPayload = {
+                content: dataStr,
+                contextType: activeContext
+            };
+
+            socket.send(JSON.stringify(dispatchPayload));
+            field.value = '';
+        }
+
+        function checkEnter(e) {
+            if (e.key === 'Enter') dispatchPacket();
+        }
+
+        // Initialize connection layers automatically on view initialization
+        window.onload = openSocketBridge;
+    </script>
+</body>
+</html>

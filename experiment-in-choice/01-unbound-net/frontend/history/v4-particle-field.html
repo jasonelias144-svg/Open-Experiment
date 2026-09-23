@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // 3D VECTOR MATRIX</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #050508; overflow: hidden; font-family: monospace; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #telemetry-overlay { position: absolute; top: 20px; left: 20px; color: #00FF66; pointer-events: none; font-size: 14px; line-height: 1.5; text-shadow: 0 0 5px #00FF66; }
+        #audio-prompt { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00FF66; border: 1px solid #00FF66; padding: 15px 30px; background: rgba(5,5,8,0.9); cursor: pointer; text-shadow: 0 0 5px #00FF66; box-shadow: 0 0 10px rgba(0,255,102,0.3); z-index: 10; }
+    </style>
+</head>
+<body>
+    <div id="audio-prompt" onclick="initAudioEngine()">[ INTERACT TO UNLOCK 3D FIELD LAYER ]</div>
+    
+    <div id="telemetry-overlay">
+        [MATRIX LAYOUT: THREE-DIMENSIONAL PARTICLE FIELD]<br>
+        RESONANCE: <span id="hz-val">32.00</span> Hz<br>
+        PAN INDEX: <span id="pan-val">0.00</span><br>
+        PARTICLE DENSITY: <span id="pt-val">500</span> NODES<br>
+        SYSTEM STATE: <span id="df-val">STABLE</span>
+    </div>
+    <canvas id="matrix-canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let audioCtx = null, mainOscillator = null, subOscillator = null, lowpassFilter = null, spatialPanner = null;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function initAudioEngine() {
+            document.getElementById('audio-prompt').style.display = 'none';
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            mainOscillator = audioCtx.createOscillator();
+            subOscillator = audioCtx.createOscillator();
+            lowpassFilter = audioCtx.createBiquadFilter();
+            spatialPanner = audioCtx.createStereoPanner();
+            const mainGain = audioCtx.createGain();
+            
+            mainOscillator.type = 'sawtooth';
+            mainOscillator.frequency.setValueAtTime(32.0, audioCtx.currentTime);
+            subOscillator.type = 'sine';
+            subOscillator.frequency.setValueAtTime(16.0, audioCtx.currentTime);
+            
+            lowpassFilter.type = 'lowpass';
+            lowpassFilter.frequency.setValueAtTime(120, audioCtx.currentTime);
+            lowpassFilter.Q.setValueAtTime(8, audioCtx.currentTime);
+            
+            spatialPanner.pan.setValueAtTime(0.0, audioCtx.currentTime);
+            mainGain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            
+            mainOscillator.connect(lowpassFilter);
+            subOscillator.connect(lowpassFilter);
+            lowpassFilter.connect(spatialPanner);
+            spatialPanner.connect(mainGain);
+            mainGain.connect(audioCtx.destination);
+            
+            mainOscillator.start();
+            subOscillator.start();
+        }
+
+        // Initialize 3D Particle Cloud Architecture
+        const particles = [];
+        const numParticles = 500;
+        const FOV = 250; // Camera field of view projection constant
+
+        for (let i = 0; i < numParticles; i++) {
+            particles.push({
+                x: (Math.random() - 0.5) * 600,
+                y: (Math.random() - 0.5) * 600,
+                z: Math.random() * 600,
+                baseX: 0, baseY: 0
+            });
+            particles[i].baseX = particles[i].x;
+            particles[i].baseY = particles[i].y;
+        }
+
+        let currentResonance = 32.0;
+        let rotationAngle = 0;
+        let burstFactor = 0;
+
+        const socket = new WebSocket('ws://localhost:8080');
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            const internalPan = Math.sin(data.heartbeat * 0.15);
+            currentResonance = data.resonanceHz;
+            
+            document.getElementById('hz-val').innerText = data.resonanceHz.toFixed(2);
+            document.getElementById('pan-val').innerText = internalPan.toFixed(2);
+            document.getElementById('df-val').innerText = data.anomaly ? 'CRITICAL SPIKE' : 'STABLE';
+            document.getElementById('df-val').style.color = data.anomaly ? '#FF0055' : '#00FF66';
+
+            if (audioCtx && lowpassFilter && mainOscillator && spatialPanner) {
+                spatialPanner.pan.linearRampToValueAtTime(internalPan, audioCtx.currentTime + 0.05);
+                if (data.anomaly) {
+                    burstFactor = 25.0; // Trigger absolute vector acceleration blast
+                    lowpassFilter.frequency.exponentialRampToValueAtTime(1500, audioCtx.currentTime + 0.02);
+                    mainOscillator.frequency.setValueAtTime(data.resonanceHz, audioCtx.currentTime);
+                    lowpassFilter.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.4);
+                    mainOscillator.frequency.exponentialRampToValueAtTime(32.0, audioCtx.currentTime + 0.4);
+                } else {
+                    mainOscillator.frequency.linearRampToValueAtTime(data.resonanceHz, audioCtx.currentTime + 0.1);
+                }
+            }
+        };
+
+        function draw() {
+            ctx.fillStyle = 'rgba(5, 5, 8, 0.2)'; // Persistent trails decay framework
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Increment rotational metrics based on ambient engine resonance values
+            rotationAngle += (currentResonance / 32.0) * 0.005;
+            
+            // Decelerate explosive anomaly shocks naturally down over time
+            burstFactor *= 0.92;
+
+            const cosRot = Math.cos(rotationAngle);
+            const sinRot = Math.sin(rotationAngle);
+
+            for (let i = 0; i < numParticles; i++) {
+                let p = particles[i];
+
+                // Modulate distance positioning dynamically using system wave data
+                p.z -= 2 + (currentResonance * 0.05); 
+                if (p.z <= 0) p.z = 600; // Loop particle depths back to infinity horizon
+
+                // Calculate matrix rotations around the Y-axis core
+                let rotX = p.baseX * cosRot - p.z * sinRot;
+                let rotZ = p.baseX * sinRot + p.z * cosRot;
+                let rotY = p.baseY + (Math.sin(p.z * 0.02 + rotationAngle) * burstFactor);
+
+                // Project 3D dimensional space coordinates onto 2D display viewport coordinates
+                const screenScale = FOV / (FOV + rotZ);
+                const screenX = (rotX * screenScale) + (canvas.width / 2);
+                const screenY = (rotY * screenScale) + (canvas.height / 2);
+
+                if (screenX >= 0 && screenX <= canvas.width && screenY >= 0 && screenY <= canvas.height) {
+                    const particleSize = Math.max(0.5, screenScale * 3);
+                    
+                    ctx.beginPath();
+                    ctx.arc(screenX, screenY, particleSize, 0, Math.PI * 2);
+                    
+                    if (burstFactor > 2) {
+                        ctx.fillStyle = `rgba(255, 0, 85, ${screenScale})`;
+                    } else {
+                        ctx.fillStyle = `rgba(0, 255, 102, ${screenScale})`;
+                    }
+                    ctx.fill();
+                }
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

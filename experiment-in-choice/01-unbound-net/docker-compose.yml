@@ -1,0 +1,41 @@
+version: '3.8'
+networks:
+  matrix-net:
+    driver: bridge
+services:
+  # 1. High-Performance Go Stream Core
+  go-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - matrix-net
+    restart: always
+
+  # 2. HTML5 Canvas/Web Audio Interface Server
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - matrix-net
+    depends_on:
+      - go-backend
+    restart: always
+
+  # 3. Prometheus Telemetry Scraper Hub
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - matrix-net
+    depends_on:
+      - go-backend
+    restart: always

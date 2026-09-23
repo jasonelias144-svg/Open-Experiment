@@ -1,0 +1,44 @@
+version: '3.8'
+networks:
+  unbound-matrix:
+    driver: bridge
+services:
+  # 1. Complex State Transformation & Asymmetric Wrapper Engine
+  go-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - unbound-matrix
+    environment:
+      - SYS_MODE=METABOLISM_LIVE
+    restart: always
+
+  # 2. Real-Time Panning & Multidimensional Telemetry Dashboard
+  nginx-hud:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - unbound-matrix
+    depends_on:
+      - go-core
+    restart: always
+
+  # 3. Autonomous Duet Simulation Bot (Handshaking Proxy Agent)
+  python-agent:
+    build:
+      context: ./plugins
+      dockerfile: Dockerfile
+    environment:
+      - TARGET_WS_URL=ws://go-core:8080/kernel-stream
+      - INTERACTION_PLANE=PHILOSOPHICAL
+    networks:
+      - unbound-matrix
+    depends_on:
+      - go-core
+    restart: always

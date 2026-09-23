@@ -1,0 +1,28 @@
+version: '3.8'
+networks:
+  market-net:
+    driver: bridge
+services:
+  # 1. Arbitrage Exchange Matrix & Liquidity Computation Engine
+  market-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - market-net
+    restart: always
+
+  # 2. Triangular Slippage & Asset Spread Display Portal
+  exchange-hud:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - market-net
+    depends_on:
+      - market-core
+    restart: always

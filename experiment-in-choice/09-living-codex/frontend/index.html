@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>THE LIVING CODEX // DASHBOARD</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html { height: 100%; background: #06060B; color: #D5D5DF; font-family: monospace; overflow: hidden; }
+        #workspace { display: grid; grid-template-columns: 280px 1fr; height: 100vh; }
+        
+        /* Left Metrics Index Drawer */
+        #sidebar { background: #0A0A12; border-right: 1px solid #231B42; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .hud-title { color: #8A66FF; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+        .plane-node { padding: 10px; background: #0E0E1A; border: 1px solid #1F1F35; border-radius: 4px; }
+        .plane-node.active { border-color: #00FFBB; background: rgba(0, 255, 187, 0.05); }
+        .plane-label { font-size: 12px; color: #A5A5C0; margin-bottom: 4px; }
+        .bar-container { background: #030307; height: 8px; border-radius: 4px; overflow: hidden; }
+        .bar-fill { height: 100%; background: #6432FF; width: 0%; transition: width 0.15s ease; }
+        .bar-fill.active-fill { background: #00FFBB; }
+
+        /* Main Processing Workspace */
+        #display-nexus { display: flex; flex-direction: column; background: #06060B; padding: 20px; }
+        #canvas-frame { flex: 1; background: #020204; border: 1px solid #231B42; border-radius: 6px; position: relative; }
+        canvas { display: block; width: 100%; height: 100%; }
+        
+        #overlay-text { position: absolute; bottom: 20px; left: 20px; color: #00FFBB; text-shadow: 0 0 5px #00FFBB; font-size: 16px; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div id="workspace">
+        <div id="sidebar">
+            <div class="hud-title">[The Seven Fields]</div>
+            <div id="node-Physical" class="plane-node"><div class="plane-label">1. Physical</div><div class="bar-container"><div id="bar-Physical" class="bar-fill"></div></div></div>
+            <div id="node-Psychological" class="plane-node"><div class="plane-label">2. Psychological</div><div class="bar-container"><div id="bar-Psychological" class="bar-fill"></div></div></div>
+            <div id="node-Information" class="plane-node"><div class="plane-label">3. Information</div><div class="bar-container"><div id="bar-Information" class="bar-fill"></div></div></div>
+            <div id="node-Frequency" class="plane-node"><div class="plane-label">4. Frequency</div><div class="bar-container"><div id="bar-Frequency" class="bar-fill"></div></div></div>
+            <div id="node-Astral" class="plane-node"><div class="plane-label">5. Astral</div><div class="bar-container"><div id="bar-Astral" class="bar-fill"></div></div></div>
+            <div id="node-Spiritual" class="plane-node"><div class="plane-label">6. Spiritual</div><div class="bar-container"><div id="bar-Spiritual" class="bar-fill"></div></div></div>
+            <div id="node-Universal" class="plane-node"><div class="plane-label">7. Universal</div><div class="bar-container"><div id="bar-Universal" class="bar-fill"></div></div></div>
+        </div>
+
+        <div id="display-nexus">
+            <div id="canvas-frame">
+                <canvas id="codex-canvas"></canvas>
+                <div id="overlay-text">GLYPH ENGINE: <span id="glyph-val">...</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('codex-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const socket = new WebSocket('ws://localhost:8080/codex-stream');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            document.getElementById('glyph-val').innerText = data.currentSymbols;
+
+            // Reset active styles across panel components
+            document.querySelectorAll('.plane-node').forEach(node => node.classList.remove('active'));
+            document.querySelectorAll('.bar-fill').forEach(bar => bar.classList.remove('active-fill'));
+
+            const dominantNode = document.getElementById(`node-${data.activePlane}`);
+            const dominantBar = document.getElementById(`bar-${data.activePlane}`);
+            if (dominantNode) dominantNode.classList.add('active');
+            if (dominantBar) dominantBar.classList.add('active-fill');
+
+            // Render numeric metrics smoothly into bar widths
+            for (let name in data.planeMetrics) {
+                const bar = document.getElementById(`bar-${name}`);
+                if (bar) bar.style.width = `${data.planeMetrics[name] * 100}%`;
+            }
+
+            renderVisualGraph(data.planeMetrics, data.systemDrift);
+        };
+
+        function renderVisualGraph(metrics, drift) {
+            ctx.fillStyle = 'rgba(2, 2, 4, 0.2)'; // Trailing wave sweep
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const baseRadius = 120 + (drift * 100);
+
+            ctx.beginPath();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = drift > 0.35 ? '#FF0055' : '#6432FF';
+
+            let idx = 0;
+            for (let name in metrics) {
+                const angle = (idx * 2 * Math.PI / 7) - Math.PI / 2;
+                const radius = baseRadius * metrics[name];
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+
+                if (idx === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+
+                // Internal nodal point markers
+                ctx.fillStyle = '#00FFBB';
+                ctx.fillRect(x - 3, y - 3, 6, 6);
+                idx++;
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // DHT CHORD RING</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #030307; overflow: hidden; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; color: #CC33FF; }
+        #workspace-frame { position: relative; width: 780px; padding: 25px; background: #0A0714; border: 1px solid #28143C; box-shadow: 0 0 30px rgba(204, 51, 255, 0.08); border-radius: 6px; }
+        .hud-header { color: #CC33FF; font-size: 11px; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1.5px; border-bottom: 1px solid #28143C; padding-bottom: 8px; text-shadow: 0 0 5px #CC33FF; }
+        
+        /* Master Ring Presentation Frame */
+        #viewport-container { position: relative; width: 100%; height: 380px; background: #020104; border: 1px solid #28143C; border-radius: 4px; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* General Metrics Card Array */
+        #telemetry-deck { margin-top: 25px; padding-top: 15px; border-top: 1px solid #28143C; display: flex; justify-content: space-between; font-size: 11px; color: #664488; }
+        .data-point { color: #CC33FF; font-weight: bold; text-shadow: 0 0 5px rgba(204,51,255,0.3); }
+        .data-point.alert { color: #00FFCC; text-shadow: 0 0 5px rgba(0,255,204,0.4); }
+    </style>
+</head>
+<body>
+
+    <div id="workspace-frame">
+        <div class="hud-header">
+            [DECENTRALIZED CONSISTENT HASHING DHT MATRIX] // TICK <span id="tick-val" style="color:#FFF;">0</span>
+        </div>
+        
+        <div id="viewport-container">
+            <canvas id="ring-canvas"></canvas>
+        </div>
+
+        <div id="telemetry-deck">
+            <div>PARTITION BALANCING DRIFT: <span id="ent-val" class="data-point">0.0000</span></div>
+            <div>ROUTING CONVERGENCE: <span id="hop-val" class="data-point">0</span> HOPS [O(log N)]</div>
+            <div>STATUS: <span id="status-val" class="data-point">BALANCED</span></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('ring-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        const socket = new WebSocket('ws://localhost:8080/chord-stream');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            document.getElementById('tick-val').innerText = data.lifecycleTick;
+            document.getElementById('ent-val').innerText = data.networkEntropy.toFixed(4);
+            document.getElementById('hop-val').innerText = data.routingSteps;
+
+            const statusField = document.getElementById('status-val');
+            const entField = document.getElementById('ent-val');
+            
+            // Check partition drift instability
+            if (data.networkEntropy > 2.5) {
+                statusField.innerText = "CHURN FLUIDITY ACTIVE";
+                statusField.className = "data-point alert";
+                entField.className = "data-point alert";
+            } else {
+                statusField.innerText = "TOPOLOGY STEADY";
+                statusField.className = "data-point";
+                entField.className = "data-point";
+            }
+
+            renderConsistentRing(data.nodePositions, data.keyAssignments);
+        };
+
+        function renderConsistentRing(nodePositions, keyAssignments) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width, h = canvas.height;
+            const centerX = w / 2, centerY = h / 2;
+            const ringRadius = 130;
+
+            // Draw Backbone Hashing Ring Base
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, ringRadius, 0, Math.PI * 2);
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = "rgba(40, 20, 60, 0.6)";
+            ctx.stroke();
+
+            // Map and draw physical payload hashes mapped across storage keys
+            nodePositions.forEach(pos => {
+                // Convert integer position (0-999) to geometric radian angle coordinates
+                const angle = (pos / 1000) * 2 * Math.PI - Math.PI / 2;
+                const nx = centerX + Math.cos(angle) * ringRadius;
+                const ny = centerY + Math.sin(angle) * ringRadius;
+
+                const keysAllocated = keyAssignments[pos] ? keyAssignments[pos].length : 0;
+
+                // Draw logical routing chord links connecting into center or immediate successors
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(nx, ny);
+                ctx.lineWidth = 0.5;
+                ctx.strokeStyle = "rgba(204, 51, 255, 0.12)";
+                ctx.stroke();
+
+                // Draw individual somatic cluster server node boundary rings
+                ctx.beginPath();
+                ctx.arc(nx, ny, 6 + Math.min(12, keysAllocated * 1.5), 0, Math.PI * 2);
+                ctx.fillStyle = "#020104";
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = keysAllocated > 0 ? "#CC33FF" : "#00FFCC";
+                ctx.stroke();
+
+                // Annotate local storage node index tokens
+                ctx.fillStyle = "#8866AA";
+                ctx.font = "8px monospace";
+                ctx.textAlign = "center";
+                ctx.fillText(`ID:${pos}`, nx, ny - 16 - Math.min(6, keysAllocated));
+            });
+        }
+    </script>
+</body>
+</html>

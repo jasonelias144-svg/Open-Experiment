@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // RAY MARCHER HUD</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #020204; overflow: hidden; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; color: #33FF33; }
+        #terminal-chassis { width: 680px; padding: 20px; background: #050A05; border: 2px solid #00AA00; box-shadow: 0 0 40px rgba(0, 255, 0, 0.12); border-radius: 4px; position: relative; }
+        #terminal-chassis::before { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); z-index: 10; background-size: 100% 3px, 6px 100%; pointer-events: none; }
+        
+        .hud-header { color: #00FF00; font-size: 11px; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 2px; border-bottom: 1px solid #005500; padding-bottom: 6px; }
+        
+        /* Master Matrix Display Frame Block */
+        #raster-display { background: #010401; border: 1px solid #005500; padding: 12px; font-size: 13px; line-height: 1.1; white-space: pre; color: #00FF33; text-shadow: 0 0 4px rgba(0, 255, 51, 0.6); overflow: hidden; height: 380px; }
+
+        /* General Metrics Card Array */
+        #telemetry-deck { margin-top: 15px; padding-top: 10px; border-top: 1px solid #005500; display: flex; justify-content: space-between; font-size: 11px; color: #008800; }
+        .data-point { color: #00FF33; font-weight: bold; text-shadow: 0 0 5px rgba(0,255,51,0.4); }
+    </style>
+</head>
+<body>
+
+    <div id="terminal-chassis">
+        <div class="hud-header">
+            [SDF GEOMETRY RAY-MARCHING ATTAINMENT STATION] // FRAME <span id="frame-val" style="color:#FFF;">0</span>
+        </div>
+        
+        <!-- Raw Ascii Output String Container -->
+        <div id="raster-display">INITIALIZING ARRAY CONNECTIONS...</div>
+
+        <div id="telemetry-deck">
+            <div>CALCULATION TIME: <span id="time-val" class="data-point">0.00</span> ms</div>
+            <div>RENDER MATRICES: 60x32 TOROIDAL PROJECTION</div>
+            <div>STREAM STATUS: <span id="status-val" class="data-point">COHERENT</span></div>
+        </div>
+    </div>
+
+    <script>
+        const rasterDisplay = document.getElementById('raster-display');
+        const socket = new WebSocket('ws://localhost:8080/ray-stream');
+
+        const width = 60;
+        const height = 32;
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            document.getElementById('frame-val').innerText = data.frameIndex;
+            document.getElementById('time-val').innerText = data.calculationMs.toFixed(2);
+
+            // Reconstruct the 1D string stream into structured matrix horizontal rows
+            let formattedBuffer = "";
+            for (let y = 0; y < height; y++) {
+                const startIdx = y * width;
+                const endIdx = startIdx + width;
+                formattedBuffer += data.renderString.substring(startIdx, endIdx) + "\n";
+            }
+
+            rasterDisplay.textContent = formattedBuffer;
+        };
+
+        socket.onclose = () => {
+            document.getElementById('status-val').innerHTML = "<span style='color:#FF0055;'>DECOHERENCE // FRAME REJECTED</span>";
+        };
+    </script>
+</body>
+</html>

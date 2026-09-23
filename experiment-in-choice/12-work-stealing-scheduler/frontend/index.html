@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // SCHEDULER HUD</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #040508; overflow: hidden; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; color: #00E1FF; }
+        #terminal-deck { width: 750px; padding: 25px; background: #0A0D14; border: 1px solid #1E293B; box-shadow: 0 0 35px rgba(0, 225, 255, 0.1); border-radius: 6px; }
+        .hud-header { color: #00E1FF; font-size: 11px; text-transform: uppercase; margin-bottom: 25px; letter-spacing: 1.5px; border-bottom: 1px solid #1E293B; padding-bottom: 8px; text-shadow: 0 0 5px #00E1FF; }
+        
+        /* Actor Threads Presentation Grid */
+        .actor-row { display: flex; align-items: center; margin-bottom: 16px; gap: 15px; }
+        .actor-label { width: 80px; color: #FFF; font-weight: bold; font-size: 12px; }
+        .queue-container { flex: 1; background: #020305; height: 26px; border: 1px solid #1E293B; border-radius: 4px; overflow: hidden; position: relative; }
+        .queue-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #0055FF, #00E1FF); transition: width 0.08s ease-out; }
+        .queue-bar.stealing { background: linear-gradient(90deg, #FF00AA, #0055FF); }
+        .count-text { width: 100px; text-align: right; font-size: 13px; color: #FFF; }
+
+        /* General Metrics Card Array */
+        #data-footer { margin-top: 25px; padding-top: 15px; border-top: 1px solid #1E293B; display: flex; justify-content: space-between; font-size: 11px; color: #4B5563; }
+        .highlight { color: #00E1FF; font-weight: bold; text-shadow: 0 0 5px rgba(0,225,255,0.4); }
+        .highlight.alert { color: #FF00AA; text-shadow: 0 0 5px rgba(255,0,170,0.5); }
+    </style>
+</head>
+<body>
+
+    <div id="terminal-deck">
+        <div class="hud-header">
+            [SMP MULTI-ACTOR LOAD-BALANCING CONTROL MATRIX] // CYCLE <span id="cycle-val" style="color:#FFF;">0</span>
+        </div>
+        
+        <div id="actor-grid">
+            <div class="actor-row">
+                <div class="actor-label">ACTOR_00</div>
+                <div class="queue-container"><div id="bar-0" class="queue-bar"></div></div>
+                <div id="cnt-0" class="count-text">00 BLOCK UNITS</div>
+            </div>
+            <div class="actor-row">
+                <div class="actor-label">ACTOR_01</div>
+                <div class="queue-container"><div id="bar-1" class="queue-bar"></div></div>
+                <div id="cnt-1" class="count-text">00 BLOCK UNITS</div>
+            </div>
+            <div class="actor-row">
+                <div class="actor-label">ACTOR_02</div>
+                <div class="queue-container"><div id="bar-2" class="queue-bar"></div></div>
+                <div id="cnt-2" class="count-text">00 BLOCK UNITS</div>
+            </div>
+            <div class="actor-row">
+                <div class="actor-label">ACTOR_03</div>
+                <div class="queue-container"><div id="bar-3" class="queue-bar"></div></div>
+                <div id="cnt-3" class="count-text">00 BLOCK UNITS</div>
+            </div>
+        </div>
+
+        <div id="data-footer">
+            <div>TOTAL THREAD BALANCING: <span id="bal-val" class="highlight">0.00%</span></div>
+            <div>CUMULATIVE STEAL EVENTS: <span id="stl-val" class="highlight">0</span></div>
+            <div>THROUGHPUT: <span id="thr-val" class="highlight">0</span> UNITS</div>
+        </div>
+    </div>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:8080/scheduler-stream');
+        let lastQueueSizes =;
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            document.getElementById('cycle-val').innerText = data.schedulerCycle;
+            document.getElementById('stl-val').innerText = data.stealEvents;
+            document.getElementById('thr-val').innerText = data.totalThroughput;
+            
+            const balancingPercentage = (data.systemBalance * 100).toFixed(1);
+            const balField = document.getElementById('bal-val');
+            balField.innerText = balancingPercentage + "%";
+            
+            if (data.systemBalance < 0.65) {
+                balField.className = "highlight alert";
+            } else {
+                balField.className = "highlight";
+            }
+
+            // Sync structural load distributions across individual actor tracks
+            for (let i = 0; i < 4; i++) {
+                const currentSize = data.queueSizes[i];
+                const bar = document.getElementById(`bar-${i}`);
+                
+                // Approximate saturation ratio capped to max visual normalization limit of 30 units
+                const scaleWidth = Math.min(100, (currentSize / 30) * 100);
+                bar.style.width = `${scaleWidth}%`;
+
+                // If an actor queue size suddenly increments from zero, flag it visually as a successful theft event
+                if (lastQueueSizes[i] === 0 && currentSize > 0) {
+                    bar.classList.add('stealing');
+                } else if (currentSize === 0) {
+                    bar.classList.remove('stealing');
+                }
+
+                document.getElementById(`cnt-${i}`).innerText = `${String(currentSize).padStart(2, '0')} TASK BLOCKS`;
+                lastQueueSizes[i] = currentSize;
+            }
+        };
+
+        socket.onclose = () => {
+            document.getElementById('data-footer').innerHTML = "<span style='color:#FF00AA; font-weight:bold;'>[!] DECOHERENCE // CORE SCHEDULER DISMOUNTED</span>";
+        };
+    </script>
+</body>
+</html>

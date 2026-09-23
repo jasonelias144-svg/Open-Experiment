@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+scrape_configs:
+  - job_name: 'graph-mesh-telemetry'
+    static_configs:
+      - targets: ['graph-core:8080']

@@ -1,0 +1,41 @@
+version: '3.8'
+networks:
+  topology-mesh:
+    driver: bridge
+services:
+  # 1. High-Performance Go Graph Automata Engine
+  graph-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - topology-mesh
+    restart: always
+
+  # 2. Nginx Web Front-End: Topology HUD Viewport
+  frontend-hud:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - topology-mesh
+    depends_on:
+      - graph-core
+    restart: always
+
+  # 3. Prometheus Telemetry Performance Scraper
+  telemetry-monitor:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - topology-mesh
+    depends_on:
+      - graph-core
+    restart: always
