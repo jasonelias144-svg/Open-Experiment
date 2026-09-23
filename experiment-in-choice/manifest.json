@@ -1,0 +1,658 @@
+[
+ {
+  "project": "01-unbound-net",
+  "path": "terminal/run.sh",
+  "source_lines": [
+   227,
+   247
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "terminal/vortex.py",
+  "source_lines": [
+   303,
+   324
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "terminal/terminal_interface.py",
+  "source_lines": [
+   365,
+   424
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "terminal/Dockerfile",
+  "source_lines": [
+   450,
+   458
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "k8s/deployment.yaml",
+  "source_lines": [
+   502,
+   545
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "k8s/configmap.yaml",
+  "source_lines": [
+   587,
+   598
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "terminal/telemetry.py",
+  "source_lines": [
+   604,
+   627
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "grafana/dashboard.json",
+  "source_lines": [
+   672,
+   761
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "node-proxy/server.js",
+  "source_lines": [
+   803,
+   840
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "frontend/history/v1-heartbeat.html",
+  "source_lines": [
+   889,
+   996
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "frontend/history/v2-audio.html",
+  "source_lines": [
+   1030,
+   1186
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "frontend/history/v3-spatial-audio.html",
+  "source_lines": [
+   1218,
+   1376
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "frontend/history/v4-particle-field.html",
+  "source_lines": [
+   1409,
+   1573
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "frontend/history/v5-cinematic.html",
+  "source_lines": [
+   1608,
+   1775
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "backend/main.go",
+  "source_lines": [
+   1808,
+   1881
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   1923,
+   1963
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "frontend/index.html",
+  "source_lines": [
+   2024,
+   2219
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "prometheus/prometheus.yml",
+  "source_lines": [
+   2283,
+   2290
+  ]
+ },
+ {
+  "project": "01-unbound-net",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   2296,
+   2307
+  ]
+ },
+ {
+  "project": "02-confluence-hub",
+  "path": "backend/main.go",
+  "source_lines": [
+   2378,
+   2535
+  ]
+ },
+ {
+  "project": "02-confluence-hub",
+  "path": "mobile/Room.js",
+  "source_lines": [
+   2541,
+   2618
+  ]
+ },
+ {
+  "project": "02-confluence-hub",
+  "path": "plugins/agent_plugin.py",
+  "source_lines": [
+   2653,
+   2710
+  ]
+ },
+ {
+  "project": "02-confluence-hub",
+  "path": "frontend/index.html",
+  "source_lines": [
+   2754,
+   2941
+  ]
+ },
+ {
+  "project": "02-confluence-hub",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   2977,
+   3032
+  ]
+ },
+ {
+  "project": "02-confluence-hub",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   3119,
+   3130
+  ]
+ },
+ {
+  "project": "02-confluence-hub",
+  "path": "plugins/Dockerfile",
+  "source_lines": [
+   3134,
+   3138
+  ]
+ },
+ {
+  "project": "03-biomimetic-automata",
+  "path": "backend/main.go",
+  "source_lines": [
+   3266,
+   3393
+  ]
+ },
+ {
+  "project": "03-biomimetic-automata",
+  "path": "frontend/history/v1-biosphere.html",
+  "source_lines": [
+   3426,
+   3519
+  ]
+ },
+ {
+  "project": "03-biomimetic-automata",
+  "path": "frontend/index.html",
+  "source_lines": [
+   3555,
+   3704
+  ]
+ },
+ {
+  "project": "03-biomimetic-automata",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   3739,
+   3749
+  ]
+ },
+ {
+  "project": "03-biomimetic-automata",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   3795,
+   3822
+  ]
+ },
+ {
+  "project": "04-quantum-circuit",
+  "path": "backend/main.go",
+  "source_lines": [
+   3995,
+   4107
+  ]
+ },
+ {
+  "project": "04-quantum-circuit",
+  "path": "frontend/index.html",
+  "source_lines": [
+   4134,
+   4238
+  ]
+ },
+ {
+  "project": "04-quantum-circuit",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   4266,
+   4276
+  ]
+ },
+ {
+  "project": "04-quantum-circuit",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   4321,
+   4348
+  ]
+ },
+ {
+  "project": "05-neuro-evolution",
+  "path": "backend/main.go",
+  "source_lines": [
+   4487,
+   4615
+  ]
+ },
+ {
+  "project": "05-neuro-evolution",
+  "path": "frontend/index.html",
+  "source_lines": [
+   4644,
+   4790
+  ]
+ },
+ {
+  "project": "05-neuro-evolution",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   4823,
+   4833
+  ]
+ },
+ {
+  "project": "05-neuro-evolution",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   4871,
+   4898
+  ]
+ },
+ {
+  "project": "06-market-graph",
+  "path": "backend/main.go",
+  "source_lines": [
+   5036,
+   5143
+  ]
+ },
+ {
+  "project": "06-market-graph",
+  "path": "frontend/index.html",
+  "source_lines": [
+   5171,
+   5323
+  ]
+ },
+ {
+  "project": "06-market-graph",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   5354,
+   5364
+  ]
+ },
+ {
+  "project": "06-market-graph",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   5402,
+   5429
+  ]
+ },
+ {
+  "project": "07-consensus-cluster",
+  "path": "backend/main.go",
+  "source_lines": [
+   5567,
+   5705
+  ]
+ },
+ {
+  "project": "07-consensus-cluster",
+  "path": "frontend/index.html",
+  "source_lines": [
+   5738,
+   5899
+  ]
+ },
+ {
+  "project": "07-consensus-cluster",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   5931,
+   5941
+  ]
+ },
+ {
+  "project": "07-consensus-cluster",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   6064,
+   6091
+  ]
+ },
+ {
+  "project": "08-ray-marcher",
+  "path": "backend/main.go",
+  "source_lines": [
+   6233,
+   6376
+  ]
+ },
+ {
+  "project": "08-ray-marcher",
+  "path": "frontend/index.html",
+  "source_lines": [
+   6409,
+   6475
+  ]
+ },
+ {
+  "project": "08-ray-marcher",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   6507,
+   6517
+  ]
+ },
+ {
+  "project": "08-ray-marcher",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   6565,
+   6592
+  ]
+ },
+ {
+  "project": "09-living-codex",
+  "path": "backend/main.go",
+  "source_lines": [
+   6737,
+   6877
+  ]
+ },
+ {
+  "project": "09-living-codex",
+  "path": "frontend/index.html",
+  "source_lines": [
+   6883,
+   7001
+  ]
+ },
+ {
+  "project": "09-living-codex",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   7033,
+   7060
+  ]
+ },
+ {
+  "project": "09-living-codex",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   7131,
+   7143
+  ]
+ },
+ {
+  "project": "10-kernel-lineage",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   7199,
+   7242
+  ]
+ },
+ {
+  "project": "10-kernel-lineage",
+  "path": "history/main.v1.go",
+  "source_lines": [
+   7248,
+   7395
+  ]
+ },
+ {
+  "project": "10-kernel-lineage",
+  "path": "frontend/index.html",
+  "source_lines": [
+   7401,
+   7514
+  ]
+ },
+ {
+  "project": "10-kernel-lineage",
+  "path": "history/Dockerfile.v1",
+  "source_lines": [
+   7520,
+   7521
+  ]
+ },
+ {
+  "project": "10-kernel-lineage",
+  "path": "backend/main.go",
+  "source_lines": [
+   7563,
+   7735
+  ]
+ },
+ {
+  "project": "10-kernel-lineage",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   7741,
+   7742
+  ]
+ },
+ {
+  "project": "10-kernel-lineage",
+  "path": "plugins/lineage_analysis.py",
+  "source_lines": [
+   7776,
+   7842
+  ]
+ },
+ {
+  "project": "10-kernel-lineage",
+  "path": "plugins/Dockerfile",
+  "source_lines": [
+   7848,
+   7848
+  ]
+ },
+ {
+  "project": "10-kernel-lineage",
+  "path": "history/docker-compose.volume-patch.yml",
+  "source_lines": [
+   7854,
+   7865
+  ]
+ },
+ {
+  "project": "10-kernel-lineage",
+  "path": "backend/alertmanager.go",
+  "source_lines": [
+   7904,
+   7985
+  ]
+ },
+ {
+  "project": "10-kernel-lineage",
+  "path": "history/main.webhook-patch.go",
+  "source_lines": [
+   7991,
+   8009
+  ]
+ },
+ {
+  "project": "11-adaptive-graph",
+  "path": "backend/dynamic_graph_engine.go",
+  "source_lines": [
+   8060,
+   8213
+  ]
+ },
+ {
+  "project": "11-adaptive-graph",
+  "path": "frontend/history/v1-topology.html",
+  "source_lines": [
+   8241,
+   8387
+  ]
+ },
+ {
+  "project": "11-adaptive-graph",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   8423,
+   8430
+  ]
+ },
+ {
+  "project": "11-adaptive-graph",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   8473,
+   8513
+  ]
+ },
+ {
+  "project": "11-adaptive-graph",
+  "path": "prometheus/prometheus.yml",
+  "source_lines": [
+   8535,
+   8541
+  ]
+ },
+ {
+  "project": "11-adaptive-graph",
+  "path": "frontend/index.html",
+  "source_lines": [
+   8579,
+   8744
+  ]
+ },
+ {
+  "project": "12-work-stealing-scheduler",
+  "path": "backend/scheduling_engine.go",
+  "source_lines": [
+   8817,
+   9001
+  ]
+ },
+ {
+  "project": "12-work-stealing-scheduler",
+  "path": "frontend/index.html",
+  "source_lines": [
+   9007,
+   9115
+  ]
+ },
+ {
+  "project": "12-work-stealing-scheduler",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   9143,
+   9150
+  ]
+ },
+ {
+  "project": "12-work-stealing-scheduler",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   9189,
+   9227
+  ]
+ },
+ {
+  "project": "12-work-stealing-scheduler",
+  "path": "prometheus/prometheus.yml",
+  "source_lines": [
+   9249,
+   9254
+  ]
+ },
+ {
+  "project": "13-dht-chord-ring",
+  "path": "backend/dht_chord_engine.go",
+  "source_lines": [
+   9299,
+   9491
+  ]
+ },
+ {
+  "project": "13-dht-chord-ring",
+  "path": "frontend/index.html",
+  "source_lines": [
+   9497,
+   9620
+  ]
+ },
+ {
+  "project": "13-dht-chord-ring",
+  "path": "backend/Dockerfile",
+  "source_lines": [
+   9645,
+   9652
+  ]
+ },
+ {
+  "project": "13-dht-chord-ring",
+  "path": "docker-compose.yml",
+  "source_lines": [
+   9687,
+   9727
+  ]
+ },
+ {
+  "project": "13-dht-chord-ring",
+  "path": "prometheus/prometheus.yml",
+  "source_lines": [
+   9749,
+   9755
+  ]
+ }
+]

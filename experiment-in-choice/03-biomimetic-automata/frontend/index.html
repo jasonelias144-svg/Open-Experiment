@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // BIO-ACOUSTIC AUTOMATA</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #030306; overflow: hidden; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #canvas-wrapper { position: relative; border: 1px solid #00AAFF; box-shadow: 0 0 20px rgba(0, 170, 255, 0.15); border-radius: 4px; overflow: hidden; }
+        canvas { display: block; background: #030306; }
+        #bio-overlay { position: absolute; top: 15px; left: 15px; color: #00AAFF; pointer-events: none; font-size: 13px; line-height: 1.5; text-shadow: 0 0 5px #00AAFF; background: rgba(3, 3, 6, 0.85); padding: 10px; border-radius: 3px; border: 1px solid rgba(0, 170, 255, 0.2); }
+        #audio-lock { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00AAFF; border: 1px solid #00AAFF; padding: 15px 30px; background: rgba(3,3,6,0.95); cursor: pointer; text-shadow: 0 0 5px #00AAFF; box-shadow: 0 0 15px rgba(0,170,255,0.3); z-index: 10; font-weight: bold; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="audio-lock" onclick="engageAcousticMatrix()">[ INITIALIZE BIO-ACOUSTIC INTERFACE ]</div>
+
+    <div id="canvas-wrapper">
+        <div id="bio-overlay">
+            [BIOMIMETIC LAYER: ACOUSTIC BIOSPHERE]<br>
+            GENERATION: <span id="gen-val">0</span><br>
+            ACTIVE CELLS: <span id="cell-val">0</span> / 4096<br>
+            RESONANCE PEAK: <span id="freq-val">0.00</span> Hz
+        </div>
+        <canvas id="bio-canvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('bio-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const gridW = 64;
+        const gridH = 64;
+        const cellPixelSize = 10; 
+
+        canvas.width = gridW * cellPixelSize;
+        canvas.height = gridH * cellPixelSize;
+
+        const decayBuffer = new Float32Array(gridW * gridH);
+
+        // Web Audio API Routing Nodes
+        let audioCtx = null;
+        let masterFilter = null;
+        let polyphonyOscillators = [];
+        const basePentatonicScale = [65.41, 73.42, 82.41, 98.00, 110.00, 130.81, 146.83, 164.81, 196.00, 220.00]; // Low C matrix chord root
+
+        function engageAcousticMatrix() {
+            document.getElementById('audio-lock').style.display = 'none';
+            
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterFilter = audioCtx.createBiquadFilter();
+            const masterGain = audioCtx.createGain();
+
+            masterFilter.type = 'lowpass';
+            masterFilter.Q.setValueAtTime(6, audioCtx.currentTime);
+            masterFilter.frequency.setValueAtTime(200, audioCtx.currentTime);
+
+            masterGain.gain.setValueAtTime(0.18, audioCtx.currentTime); // Limit harmonic sound floors safely
+
+            masterFilter.connect(masterGain);
+            masterGain.connect(audioCtx.destination);
+
+            // Initialize three floating oscillator nodes to map polyphonic density states
+            for (let i = 0; i < 3; i++) {
+                let osc = audioCtx.createOscillator();
+                let oscGain = audioCtx.createGain();
+                
+                osc.type = i === 0 ? 'sine' : 'triangle';
+                osc.frequency.setValueAtTime(basePentatonicScale[i * 2], audioCtx.currentTime);
+                oscGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+
+                osc.connect(oscGain);
+                oscGain.connect(masterFilter);
+                osc.start();
+
+                polyphonyOscillators.push({ node: osc, gain: oscGain });
+            }
+        }
+
+        const socket = new WebSocket('ws://localhost:8080/bio-stream');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            document.getElementById('gen-val').innerText = data.generation;
+            document.getElementById('cell-val').innerText = data.activeCount;
+
+            // Process audio transduction map metrics
+            modulateBioAcoustics(data.activeCount);
+
+            renderEcosystem(data.gridState);
+        };
+
+        function modulateBioAcoustics(activeCount) {
+            if (!audioCtx || !masterFilter) return;
+
+            // Derive active saturation coefficient bounded between 0.0 and 1.0
+            const maxTheoreticalCells = 1500; // Normal active envelope boundary limit
+            const densityRatio = Math.min(1.0, activeCount / maxTheoreticalCells);
+
+            // 1. Modulate Lowpass Filter Cutoff point based on active biosphere mass
+            const targetCutoff = 150 + (densityRatio * 1800);
+            masterFilter.frequency.exponentialRampToValueAtTime(targetCutoff, audioCtx.currentTime + 0.1);
+            document.getElementById('freq-val').innerText = targetCutoff.toFixed(2);
+
+            // 2. Pivot individual oscillator notes up or down through chord arrays
+            polyphonyOscillators.forEach((oscStruct, idx) => {
+                const scaleIndex = Math.floor(densityRatio * (basePentatonicScale.length - 1 - idx)) + idx;
+                const targetFreq = basePentatonicScale[scaleIndex];
+                
+                oscStruct.node.frequency.linearRampToValueAtTime(targetFreq, audioCtx.currentTime + 0.12);
+            });
+        }
+
+        function renderEcosystem(gridState) {
+            ctx.fillStyle = 'rgba(3, 3, 6, 0.35)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < gridState.length; i++) {
+                const x = Math.floor(i / gridH);
+                const y = i % gridH;
+                const isAlive = gridState[i] === 1;
+
+                if (isAlive) decayBuffer[i] = 1.0;
+                else decayBuffer[i] *= 0.85;
+
+                const energy = decayBuffer[i];
+
+                if (energy > 0.02) {
+                    const px = x * cellPixelSize;
+                    const py = y * cellPixelSize;
+
+                    ctx.beginPath();
+                    if (isAlive) {
+                        ctx.fillStyle = `rgba(0, 170, 255, ${energy})`;
+                        ctx.fillRect(px + 1, py + 1, cellPixelSize - 1, cellPixelSize - 1);
+                    } else {
+                        ctx.fillStyle = `rgba(130, 0, 255, ${energy * 0.4})`;
+                        ctx.fillRect(px + 1, py + 1, cellPixelSize - 1, cellPixelSize - 1);
+                    }
+                }
+            }
+        }
+
+        socket.onclose = () => {
+            document.getElementById('bio-overlay').innerHTML = "<span style='color:#FF0055;'>[!] CRITICAL: BIOSPHERE DRIFT UNLOCKED // OFFLINE</span>";
+        };
+    </script>
+</body>
+</html>

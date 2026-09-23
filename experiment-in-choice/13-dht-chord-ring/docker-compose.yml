@@ -1,0 +1,41 @@
+version: '3.8'
+networks:
+  dht-mesh:
+    driver: bridge
+services:
+  # 1. High-Performance Go Consistent Hashing Matrix Engine
+  dht-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - dht-mesh
+    restart: always
+
+  # 2. Nginx Web Front-End: Node Consistent Ring HUD Viewport
+  dht-hud:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - dht-mesh
+    depends_on:
+      - dht-core
+    restart: always
+
+  # 3. Prometheus Telemetry Performance Scraper
+  metrics-monitor:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - dht-mesh
+    depends_on:
+      - dht-core
+    restart: always

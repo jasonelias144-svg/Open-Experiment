@@ -1,0 +1,13 @@
+# Update the backend volume configuration tags in your root compose layout:
+services:
+  go-core:
+    # ... previous fields unchanged
+    volumes:
+      - matrix-data:/app
+
+  python-agent:
+    # ... previous fields unchanged
+    volumes:
+      - matrix-data:/app/backend:ro
+volumes:
+  matrix-data:

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // SPATIAL MATRIX ENGINE</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #0A0A0F; overflow: hidden; font-family: monospace; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #telemetry-overlay { position: absolute; top: 20px; left: 20px; color: #00FF66; pointer-events: none; font-size: 14px; line-height: 1.5; text-shadow: 0 0 5px #00FF66; }
+        #audio-prompt { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00FF66; border: 1px solid #00FF66; padding: 15px 30px; background: rgba(10,10,15,0.9); cursor: pointer; text-shadow: 0 0 5px #00FF66; box-shadow: 0 0 10px rgba(0,255,102,0.3); z-index: 10; }
+    </style>
+</head>
+<body>
+    <div id="audio-prompt" onclick="initAudioEngine()">[ INTERACT TO UNLOCK SPATIAL SOUND FIELD ]</div>
+    
+    <div id="telemetry-overlay">
+        [SYSTEM STATUS: ACQUIRING THREE-DIMENSIONAL STREAM]<br>
+        RESONANCE: <span id="hz-val">32.00</span> Hz<br>
+        PAN COORDINATE: <span id="pan-val">0.00</span> (L/R)<br>
+        HEARTBEAT: <span id="hb-val">0</span><br>
+        DRIFT STATE: <span id="df-val">STABLE</span>
+    </div>
+    <canvas id="matrix-canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let audioCtx = null;
+        let mainOscillator = null;
+        let subOscillator = null;
+        let lowpassFilter = null;
+        let spatialPanner = null;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function initAudioEngine() {
+            document.getElementById('audio-prompt').style.display = 'none';
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            mainOscillator = audioCtx.createOscillator();
+            subOscillator = audioCtx.createOscillator();
+            lowpassFilter = audioCtx.createBiquadFilter();
+            spatialPanner = audioCtx.createStereoPanner();
+            const mainGain = audioCtx.createGain();
+            
+            mainOscillator.type = 'sawtooth';
+            mainOscillator.frequency.setValueAtTime(32.0, audioCtx.currentTime);
+            
+            subOscillator.type = 'sine';
+            subOscillator.frequency.setValueAtTime(16.0, audioCtx.currentTime);
+            
+            lowpassFilter.type = 'lowpass';
+            lowpassFilter.frequency.setValueAtTime(120, audioCtx.currentTime);
+            lowpassFilter.Q.setValueAtTime(8, audioCtx.currentTime);
+            
+            // Set initial pan spatial array directly in dead center (0.0)
+            spatialPanner.pan.setValueAtTime(0.0, audioCtx.currentTime);
+            mainGain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            
+            // Assemble the pipeline through the spatial mapping matrix
+            mainOscillator.connect(lowpassFilter);
+            subOscillator.connect(lowpassFilter);
+            lowpassFilter.connect(spatialPanner);
+            spatialPanner.connect(mainGain);
+            mainGain.connect(audioCtx.destination);
+            
+            mainOscillator.start();
+            subOscillator.start();
+        }
+
+        const history = [];
+        const maxHistory = 100;
+        const socket = new WebSocket('ws://localhost:8080');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // Calculate an undulating spatial index tracking over time (-1.0 Full Left to 1.0 Full Right)
+            const internalPan = Math.sin(data.heartbeat * 0.15);
+            
+            document.getElementById('hz-val').innerText = data.resonanceHz.toFixed(2);
+            document.getElementById('pan-val').innerText = internalPan.toFixed(2);
+            document.getElementById('hb-val').innerText = data.heartbeat;
+            document.getElementById('df-val').innerText = data.anomaly ? 'CRITICAL SPIKE' : 'STABLE';
+            document.getElementById('df-val').style.color = data.anomaly ? '#FF0055' : '#00FF66';
+
+            if (audioCtx && lowpassFilter && mainOscillator && spatialPanner) {
+                // Modulate panning across spatial parameters dynamically
+                spatialPanner.pan.linearRampToValueAtTime(internalPan, audioCtx.currentTime + 0.05);
+
+                if (data.anomaly) {
+                    lowpassFilter.frequency.exponentialRampToValueAtTime(1400, audioCtx.currentTime + 0.02);
+                    mainOscillator.frequency.setValueAtTime(data.resonanceHz, audioCtx.currentTime);
+                    
+                    lowpassFilter.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.4);
+                    mainOscillator.frequency.exponentialRampToValueAtTime(32.0, audioCtx.currentTime + 0.4);
+                } else {
+                    mainOscillator.frequency.linearRampToValueAtTime(data.resonanceHz, audioCtx.currentTime + 0.1);
+                }
+            }
+
+            history.push({ ...data, panFactor: internalPan });
+            if (history.length > maxHistory) history.shift();
+        };
+
+        function draw() {
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (history.length < 2) {
+                requestAnimationFrame(draw);
+                return;
+            }
+
+            ctx.beginPath();
+            ctx.lineWidth = 2;
+
+            for (let i = 0; i < history.length; i++) {
+                const packet = history[i];
+                // Distort the horizontal axis drawing vector using the panning field mapping multiplier
+                const x = ((canvas.width / maxHistory) * i) + (packet.panFactor * 15);
+                const centerY = canvas.height / 2;
+                const amplitude = (packet.resonanceHz - 32.0) * 12;
+                const y = centerY - amplitude;
+
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+
+                if (packet.anomaly && i === history.length - 1) {
+                    ctx.strokeStyle = '#FF0055';
+                    ctx.shadowColor = '#FF0055';
+                    ctx.shadowBlur = 20;
+                    ctx.arc(x, y, 8, 0, Math.PI * 2);
+                    ctx.fillStyle = '#FF0055';
+                    ctx.fill();
+                }
+            }
+
+            if (!history[history.length - 1].anomaly) {
+                ctx.strokeStyle = '#00FF66';
+                ctx.shadowColor = '#00FF66';
+                ctx.shadowBlur = 8;
+            }
+
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

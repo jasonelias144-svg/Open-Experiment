@@ -1,0 +1,56 @@
+version: '3.8'
+networks:
+  confluence-net:
+    driver: bridge
+services:
+  # 1. Core Go Communication & Hub Router Engine
+  hub-router:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - confluence-net
+    restart: always
+
+  # 2. HTML5 Web Collaboration Desk UI Panel
+  web-desk:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - confluence-net
+    depends_on:
+      - hub-router
+    restart: always
+
+  # 3. AI Agent Plugin Instance Alpha (#philosophical focus)
+  agent-philosophy:
+    build:
+      context: ./plugins
+      dockerfile: Dockerfile
+    environment:
+      - HUB_WS_URL=ws://hub-router:8080/ws?room=discovery_zone&type=ai&id=nexus_philosophy_node
+      - TARGET_CONTEXT=philosophical
+    networks:
+      - confluence-net
+    depends_on:
+      - hub-router
+    restart: always
+
+  # 4. AI Agent Plugin Instance Beta (#scientific focus)
+  agent-science:
+    build:
+      context: ./plugins
+      dockerfile: Dockerfile
+    environment:
+      - HUB_WS_URL=ws://hub-router:8080/ws?room=discovery_zone&type=ai&id=nexus_science_node
+      - TARGET_CONTEXT=scientific
+    networks:
+      - confluence-net
+    depends_on:
+      - hub-router
+    restart: always

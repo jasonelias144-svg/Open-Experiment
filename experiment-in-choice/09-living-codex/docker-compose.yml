@@ -1,0 +1,28 @@
+version: '3.8'
+networks:
+  codex-net:
+    driver: bridge
+services:
+  # 1. Core Go Living Codex Matrix Calculation Node
+  codex-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - codex-net
+    restart: always
+
+  # 2. Nginx Web Front-End: Seven Planes Display Viewport
+  planes-hud:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - codex-net
+    depends_on:
+      - codex-core
+    restart: always

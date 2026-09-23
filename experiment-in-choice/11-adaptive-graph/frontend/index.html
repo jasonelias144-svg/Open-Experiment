@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // SPATIAL TOPOLOGY MATRIX</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #030306; overflow: hidden; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; color: #00FF66; }
+        #workspace-frame { position: relative; width: 780px; padding: 25px; background: #08080E; border: 1px solid #142814; box-shadow: 0 0 30px rgba(0, 255, 102, 0.08); border-radius: 6px; }
+        .hud-header { color: #00FF66; font-size: 11px; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1.5px; border-bottom: 1px solid #142814; padding-bottom: 8px; text-shadow: 0 0 5px #00FF66; }
+        #viewport-container { position: relative; width: 100%; height: 380px; background: #010103; border: 1px solid #142814; border-radius: 4px; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
+        #telemetry-deck { margin-top: 25px; padding-top: 15px; border-top: 1px solid #142814; display: flex; justify-content: space-between; font-size: 11px; color: #446644; }
+        .data-point { color: #00FF66; font-weight: bold; text-shadow: 0 0 5px rgba(0,255,102,0.3); }
+        .data-point.alert { color: #FF0055; text-shadow: 0 0 5px rgba(255,0,85,0.4); }
+        #audio-prompt { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00FF66; border: 1px solid #00FF66; padding: 15px 30px; background: rgba(8,8,14,0.95); cursor: pointer; text-shadow: 0 0 5px #00FF66; box-shadow: 0 0 15px rgba(0,255,102,0.3); z-index: 20; font-weight: bold; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="audio-prompt" onclick="initSpatialAcoustics()">[ INTERACT TO UNLOCK SPATIAL MESH INTERFACE ]</div>
+
+    <div id="workspace-frame">
+        <div class="hud-header">
+            [SPATIAL MESH PHASE ALIGNMENT ENGINE] // TICK <span id="tick-val" style="color:#FFF;">0</span>
+        </div>
+        
+        <div id="viewport-container">
+            <canvas id="mesh-canvas"></canvas>
+        </div>
+
+        <div id="telemetry-deck">
+            <div>NETWORK DENSITY ENTROPY: <span id="ent-val" class="data-point">0.0000</span></div>
+            <div>ACOUSTIC FIELD RECONSTRUCTION: LOCK ACTIVE</div>
+            <div>STATUS: <span id="status-val" class="data-point">COHERENT</span></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mesh-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Native Browser Web Audio API Architecture
+        let audioCtx = null, masterFilter = null, spatialPanner = null, coreOscillator = null;
+        const baseChordScale = [55.00, 65.41, 73.42, 82.41, 98.00, 110.00]; // Structural Low A Minor Matrix Base
+
+        function initSpatialAcoustics() {
+            document.getElementById('audio-prompt').style.display = 'none';
+            
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterFilter = audioCtx.createBiquadFilter();
+            spatialPanner = audioCtx.createStereoPanner();
+            const masterGain = audioCtx.createGain();
+
+            masterFilter.type = 'lowpass';
+            masterFilter.Q.setValueAtTime(8, audioCtx.currentTime);
+            masterFilter.frequency.setValueAtTime(350, audioCtx.currentTime);
+
+            spatialPanner.pan.setValueAtTime(0.0, audioCtx.currentTime);
+            masterGain.gain.setValueAtTime(0.22, audioCtx.currentTime);
+
+            // Connect acoustic synthesis pipeline
+            masterFilter.connect(spatialPanner);
+            spatialPanner.connect(masterGain);
+            masterGain.connect(audioCtx.destination);
+
+            // Establish background system resonance fundamental drone
+            coreOscillator = audioCtx.createOscillator();
+            coreOscillator.type = 'sawtooth';
+            coreOscillator.frequency.setValueAtTime(55.0, audioCtx.currentTime);
+            coreOscillator.connect(masterFilter);
+            coreOscillator.start();
+        }
+
+        const socket = new WebSocket('ws://localhost:8080/graph-stream');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            document.getElementById('tick-val').innerText = data.lifecycleTick;
+            document.getElementById('ent-val').innerText = data.networkEntropy.toFixed(4);
+
+            const statusField = document.getElementById('status-val');
+            const entField = document.getElementById('ent-val');
+            const isHighEntropy = data.networkEntropy > 0.08;
+
+            if (isHighEntropy) {
+                statusField.innerText = "PHASE DRIFT CRITICAL";
+                statusField.className = "data-point alert";
+                entField.className = "data-point alert";
+            } else {
+                statusField.innerText = "COHERENT INTERLOCK";
+                statusField.className = "data-point";
+                entField.className = "data-point";
+            }
+
+            // Route topology vectors to audio modulation handles
+            modulateSonicField(data.networkEntropy, data.lifecycleTick);
+            renderNetworkTopology(data.nodesPotential, data.edgeMatrix, isHighEntropy);
+        };
+
+        function modulateSonicField(entropy, tick) {
+            if (!audioCtx || !masterFilter || !spatialPanner) return;
+
+            // Translate entropy values to lowpass cutoff sweeps
+            const cutoffTarget = 200 + (entropy * 4000);
+            masterFilter.frequency.exponentialRampToValueAtTime(cutoffTarget, audioCtx.currentTime + 0.1);
+
+            // Modulate planar left/right stereo field via trigonometric sweeps
+            const panningTarget = Math.sin(tick * 0.15) * Math.min(1.0, entropy * 10);
+            spatialPanner.pan.linearRampToValueAtTime(panningTarget, audioCtx.currentTime + 0.08);
+        }
+
+        function renderNetworkTopology(potentials, edgeMatrix, unstable) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width, h = canvas.height;
+            const centerX = w / 2, centerY = h / 2;
+            const radius = 130, size = potentials.length;
+
+            const nodePositions = [];
+            for (let i = 0; i < size; i++) {
+                const angle = (i * 2 * Math.PI) / size;
+                nodePositions.push({
+                    x: centerX + Math.cos(angle) * radius,
+                    y: centerY + Math.sin(angle) * radius
+                });
+            }
+
+            for (let i = 0; i < size; i++) {
+                const neighbors = edgeMatrix[i];
+                if (!neighbors) continue;
+                const startPos = nodePositions[i];
+                neighbors.forEach(nIdx => {
+                    if (nIdx < i) return;
+                    const endPos = nodePositions[nIdx];
+                    ctx.beginPath();
+                    ctx.moveTo(startPos.x, startPos.y);
+                    ctx.lineTo(endPos.x, endPos.y);
+                    const alignment = 1.0 - Math.abs(potentials[i] - potentials[nIdx]);
+                    ctx.lineWidth = alignment * 1.5;
+                    ctx.strokeStyle = unstable ? `rgba(255, 0, 85, ${alignment * 0.4})` : `rgba(0, 255, 102, ${alignment * 0.25})`;
+                    ctx.stroke();
+                });
+            }
+
+            for (let i = 0; i < size; i++) {
+                const pos = nodePositions[i];
+                const pot = potentials[i];
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 4 + (pot * 4), 0, Math.PI * 2);
+                ctx.fillStyle = "#010103";
+                ctx.fill();
+                ctx.strokeStyle = unstable ? `rgba(255, 0, 85, ${0.4 + (pot * 0.6)})` : `rgba(0, 255, 102, ${0.4 + (pot * 0.6)})`;
+                ctx.lineWidth = 1 + (pot * 2);
+                ctx.stroke();
+            }
+        }
+    </script>
+</body>
+</html>

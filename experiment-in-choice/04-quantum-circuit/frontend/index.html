@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // QUANTUM CORE TELEMETRY</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #06060B; overflow: hidden; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; color: #E0E0EA; }
+        #telemetry-workspace { width: 700px; padding: 25px; background: #0B0B14; border: 1px solid #332255; box-shadow: 0 0 30px rgba(100, 50, 255, 0.15); border-radius: 6px; }
+        .hud-header { color: #8A66FF; font-size: 11px; text-transform: uppercase; margin-bottom: 20px; letter-spacing: 1.5px; border-bottom: 1px solid #1F1F38; padding-bottom: 8px; }
+        
+        /* Quantum State Grid Layout */
+        .state-row { display: flex; align-items: center; margin-bottom: 14px; gap: 15px; }
+        .state-label { width: 45px; color: #00FFBB; font-weight: bold; }
+        .bar-container { flex: 1; background: #030307; height: 24px; border: 1px solid #1F1F38; border-radius: 3px; overflow: hidden; position: relative; }
+        .bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #6432FF, #00FFBB); transition: width 0.15s ease-out; }
+        .bar-fill.entangled { background: linear-gradient(90deg, #FF0077, #6432FF); }
+        .metric-text { width: 140px; text-align: right; font-size: 12px; }
+
+        /* General Metrics Card Array */
+        #data-footer { margin-top: 25px; padding-top: 15px; border-top: 1px solid #1F1F38; display: flex; justify-content: space-between; font-size: 11px; color: #666; }
+        .highlight { color: #00FFBB; font-weight: bold; text-shadow: 0 0 5px #00FFBB; }
+        .highlight.alert { color: #FF0077; text-shadow: 0 0 5px #FF0077; }
+    </style>
+</head>
+<body>
+
+    <div id="telemetry-workspace">
+        <div class="hud-header">
+            [QUANTUM REGISTER COHERENCE METRICS] // CYCLE <span id="step-val" style="color:#FFF;">0</span>
+        </div>
+        
+        <div id="state-grid">
+            <div class="state-row">
+                <div class="state-label">|00&gt;</div>
+                <div class="bar-container"><div id="bar-0" class="bar-fill"></div></div>
+                <div id="amp-0" class="metric-text">0.000+0.000i (0.0%)</div>
+            </div>
+            <div class="state-row">
+                <div class="state-label">|01&gt;</div>
+                <div class="bar-container"><div id="bar-1" class="bar-fill"></div></div>
+                <div id="amp-1" class="metric-text">0.000+0.000i (0.0%)</div>
+            </div>
+            <div class="state-row">
+                <div class="state-label">|10&gt;</div>
+                <div class="bar-container"><div id="bar-2" class="bar-fill"></div></div>
+                <div id="amp-2" class="metric-text">0.000+0.000i (0.0%)</div>
+            </div>
+            <div class="state-row">
+                <div class="state-label">|11&gt;</div>
+                <div class="bar-container"><div id="bar-3" class="bar-fill"></div></div>
+                <div id="amp-3" class="metric-text">0.000+0.000i (0.0%)</div>
+            </div>
+        </div>
+
+        <div id="data-footer">
+            <div>ENTANGLEMENT ENTR0PY: <span id="ent-val" class="highlight">0.00</span></div>
+            <div>CIRCUIT BASELINE: 2 QUBIT INDEPENDENT MULTIPLEX</div>
+            <div>STATUS: <span id="status-val" class="highlight">COHERENT</span></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:8080/quantum-stream');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            document.getElementById('step-val').innerText = data.cycleStep;
+            
+            const isEntangled = data.entanglement > 0.5;
+            const entField = document.getElementById('ent-val');
+            entField.innerText = data.entanglement.toFixed(2);
+            
+            if (isEntangled) {
+                entField.className = "highlight alert";
+                document.getElementById('status-val').innerText = "ENTANGLED BELL STATE";
+                document.getElementById('status-val').className = "highlight alert";
+            } else {
+                entField.className = "highlight";
+                document.getElementById('status-val').innerText = data.probabilities[0] > 0.9 ? "GROUND STATE" : "SUPERPOSITION";
+                document.getElementById('status-val').className = "highlight";
+            }
+
+            // Iterate down state slots and adjust width mapping ratios
+            for (let i = 0; i < 4; i++) {
+                const percentage = (data.probabilities[i] * 100).toFixed(1);
+                const bar = document.getElementById(`bar-${i}`);
+                
+                bar.style.width = `${percentage}%`;
+                if (isEntangled) {
+                    bar.classList.add('entangled');
+                } else {
+                    bar.classList.remove('entangled');
+                }
+
+                document.getElementById(`amp-${i}`).innerText = `${data.stateVector[i]} (${percentage}%)`;
+            }
+        };
+
+        socket.onclose = () => {
+            document.getElementById('status-val').innerHTML = "<span style='color:#FF0055;'>DECOHERENCE // LINK DROPPED</span>";
+        };
+    </script>
+</body>
+</html>

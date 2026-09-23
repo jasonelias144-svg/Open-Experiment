@@ -1,0 +1,28 @@
+version: '3.8'
+networks:
+  neural-net:
+    driver: bridge
+services:
+  # 1. Evolving Weight Vector & Graph Topology Computation Engine
+  neural-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - neural-net
+    restart: always
+
+  # 2. Synaptic Saturation & Node Activation Display Portal
+  topography-hud:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - neural-net
+    depends_on:
+      - neural-core
+    restart: always

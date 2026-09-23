@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // BIOMIMETIC AUTOMATA</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #030306; overflow: hidden; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #canvas-wrapper { position: relative; border: 1px solid #00AAFF; box-shadow: 0 0 20px rgba(0, 170, 255, 0.15); border-radius: 4px; overflow: hidden; }
+        canvas { display: block; background: #030306; }
+        #bio-overlay { position: absolute; top: 15px; left: 15px; color: #00AAFF; pointer-events: none; font-size: 13px; line-height: 1.5; text-shadow: 0 0 5px #00AAFF; background: rgba(3, 3, 6, 0.85); padding: 10px; border-radius: 3px; border: 1px solid rgba(0, 170, 255, 0.2); }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-wrapper">
+        <div id="bio-overlay">
+            [BIOMIMETIC LAYER: TOROIDAL BIOSPHERE]<br>
+            GENERATION: <span id="gen-val">0</span><br>
+            ACTIVE CELLS: <span id="cell-val">0</span> / 4096<br>
+            METABOLIC RATE: 150ms / TICK
+        </div>
+        <canvas id="bio-canvas"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('bio-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const gridW = 64;
+        const gridH = 64;
+        const cellPixelSize = 10; // 640x640 active drawing matrix viewport
+
+        canvas.width = gridW * cellPixelSize;
+        canvas.height = gridH * cellPixelSize;
+
+        // Persistent history buffer layer to hold visual cell decay values
+        const decayBuffer = new Float32Array(gridW * gridH);
+
+        const socket = new WebSocket('ws://localhost:8080/bio-stream');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // Sync textual interface overlay metrics
+            document.getElementById('gen-val').innerText = data.generation;
+            document.getElementById('cell-val').innerText = data.activeCount;
+
+            // Render current generation grid state
+            renderEcosystem(data.gridState);
+        };
+
+        function renderEcosystem(gridState) {
+            // Apply a slight ambient global blend over the frame buffer to handle tail decays smoothly
+            ctx.fillStyle = 'rgba(3, 3, 6, 0.35)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < gridState.length; i++) {
+                const x = Math.floor(i / gridH);
+                const y = i % gridH;
+                const isAlive = gridState[i] === 1;
+
+                if (isAlive) {
+                    decayBuffer[i] = 1.0; // Instantly charge coordinate energy level to full brightness
+                } else {
+                    decayBuffer[i] *= 0.85; // Natural exponential decay trail factor
+                }
+
+                const energy = decayBuffer[i];
+
+                if (energy > 0.02) {
+                    const px = x * cellPixelSize;
+                    const py = y * cellPixelSize;
+
+                    ctx.beginPath();
+                    
+                    if (isAlive) {
+                        // Core active metabolic cell: Bright electric cyan/blue glow
+                        ctx.fillStyle = `rgba(0, 170, 255, ${energy})`;
+                        ctx.fillRect(px + 1, py + 1, cellPixelSize - 1, cellPixelSize - 1);
+                    } else {
+                        // Chemically decaying matter tracking trails: Deep bioluminescent indigo/purple aura
+                        ctx.fillStyle = `rgba(130, 0, 255, ${energy * 0.4})`;
+                        ctx.fillRect(px + 1, py + 1, cellPixelSize - 1, cellPixelSize - 1);
+                    }
+                }
+            }
+        }
+
+        socket.onclose = () => {
+            document.getElementById('bio-overlay').innerHTML = "<span style='color:#FF0055;'>[!] CRITICAL: BIOSPHERE DRIFT UNLOCKED // OFFLINE</span>";
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+version: '3.8'
+networks:
+  quantum-net:
+    driver: bridge
+services:
+  # 1. Complex State Matrix Computation Engine
+  quantum-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    networks:
+      - quantum-net
+    restart: always
+
+  # 2. Probability Distribution & Circuit Telemetry Monitor Panel
+  telemetry-monitor:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - quantum-net
+    depends_on:
+      - quantum-core
+    restart: always

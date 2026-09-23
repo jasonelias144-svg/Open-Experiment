@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // AUDIO-VISUAL NODE</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #0A0A0F; overflow: hidden; font-family: monospace; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        #telemetry-overlay { position: absolute; top: 20px; left: 20px; color: #00FF66; pointer-events: none; font-size: 14px; line-height: 1.5; text-shadow: 0 0 5px #00FF66; }
+        #audio-prompt { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00FF66; border: 1px solid #00FF66; padding: 15px 30px; background: rgba(10,10,15,0.9); cursor: pointer; text-shadow: 0 0 5px #00FF66; box-shadow: 0 0 10px rgba(0,255,102,0.3); }
+    </style>
+</head>
+<body>
+    <div id="audio-prompt" onclick="initAudioEngine()">[ INTERACT TO ENGAGE SOUND INTERFACE ]</div>
+    
+    <div id="telemetry-overlay">
+        [SYSTEM STATUS: REAL-TIME MATRIX RECONSTRUCTION]<br>
+        RESONANCE: <span id="hz-val">32.00</span> Hz<br>
+        HEARTBEAT: <span id="hb-val">0</span><br>
+        DRIFT STATE: <span id="df-val">STABLE</span>
+    </div>
+    <canvas id="matrix-canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let audioCtx = null;
+        let mainOscillator = null;
+        let subOscillator = null;
+        let lowpassFilter = null;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Native Browser Web Audio API Architecture
+        function initAudioEngine() {
+            document.getElementById('audio-prompt').style.display = 'none';
+            
+            // 1. Instantiating audio tracking workspace
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // 2. Initializing component nodes
+            mainOscillator = audioCtx.createOscillator();
+            subOscillator = audioCtx.createOscillator();
+            lowpassFilter = audioCtx.createBiquadFilter();
+            const mainGain = audioCtx.createGain();
+            
+            // 3. Configuring Core Vortex Drone (32Hz Sine + Sawtooth pairing)
+            mainOscillator.type = 'sawtooth';
+            mainOscillator.frequency.setValueAtTime(32.0, audioCtx.currentTime);
+            
+            subOscillator.type = 'sine';
+            subOscillator.frequency.setValueAtTime(16.0, audioCtx.currentTime); // Sub-harmonic anchor
+            
+            // 4. Structuring Filter Constraints to limit harsh high frequencies
+            lowpassFilter.type = 'lowpass';
+            lowpassFilter.frequency.setValueAtTime(120, audioCtx.currentTime);
+            lowpassFilter.Q.setValueAtTime(8, audioCtx.currentTime);
+            
+            // Set comfortable master output volume baseline
+            mainGain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            
+            // 5. Connecting the complete audio pipeline matrix
+            mainOscillator.connect(lowpassFilter);
+            subOscillator.connect(lowpassFilter);
+            lowpassFilter.connect(mainGain);
+            mainGain.connect(audioCtx.destination);
+            
+            // Start the generation loop clocks
+            mainOscillator.start();
+            subOscillator.start();
+        }
+
+        const history = [];
+        const maxHistory = 100;
+        const socket = new WebSocket('ws://localhost:8080');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            document.getElementById('hz-val').innerText = data.resonanceHz.toFixed(2);
+            document.getElementById('hb-val').innerText = data.heartbeat;
+            document.getElementById('df-val').innerText = data.anomaly ? 'CRITICAL SPIKE' : 'STABLE';
+            document.getElementById('df-val').style.color = data.anomaly ? '#FF0055' : '#00FF66';
+
+            // Real-Time Audio Modulation Binding
+            if (audioCtx && lowpassFilter && mainOscillator) {
+                if (data.anomaly) {
+                    // Explode filter cut-off point and drive frequency modulation high during anomaly spikes
+                    lowpassFilter.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.02);
+                    mainOscillator.frequency.setValueAtTime(data.resonanceHz, audioCtx.currentTime);
+                    
+                    // Swift decay back down to baseline parameters
+                    lowpassFilter.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.4);
+                    mainOscillator.frequency.exponentialRampToValueAtTime(32.0, audioCtx.currentTime + 0.4);
+                } else {
+                    // Organic tracking resonance drifts
+                    mainOscillator.frequency.linearRampToValueAtTime(data.resonanceHz, audioCtx.currentTime + 0.1);
+                }
+            }
+
+            history.push(data);
+            if (history.length > maxHistory) history.shift();
+        };
+
+        function draw() {
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (history.length < 2) {
+                requestAnimationFrame(draw);
+                return;
+            }
+
+            ctx.beginPath();
+            ctx.lineWidth = 2;
+
+            for (let i = 0; i < history.length; i++) {
+                const packet = history[i];
+                const x = (canvas.width / maxHistory) * i;
+                const centerY = canvas.height / 2;
+                const amplitude = (packet.resonanceHz - 32.0) * 12;
+                const y = centerY - amplitude;
+
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+
+                if (packet.anomaly && i === history.length - 1) {
+                    ctx.strokeStyle = '#FF0055';
+                    ctx.shadowColor = '#FF0055';
+                    ctx.shadowBlur = 15;
+                    ctx.arc(x, y, 6, 0, Math.PI * 2);
+                    ctx.fillStyle = '#FF0055';
+                    ctx.fill();
+                }
+            }
+
+            if (!history[history.length - 1].anomaly) {
+                ctx.strokeStyle = '#00FF66';
+                ctx.shadowColor = '#00FF66';
+                ctx.shadowBlur = 8;
+            }
+
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

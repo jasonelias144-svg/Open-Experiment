@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UNBOUND NET // NEURAL GRAPH HUD</title>
+    <style>
+        body, html { margin: 0; padding: 0; background: #040407; overflow: hidden; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; color: #D0D0DA; }
+        #hud-container { width: 750px; padding: 25px; background: #0A0A10; border: 1px solid #1E293B; box-shadow: 0 0 35px rgba(0, 255, 150, 0.1); border-radius: 6px; }
+        .hud-header { color: #00FF99; font-size: 11px; text-transform: uppercase; margin-bottom: 25px; letter-spacing: 1.5px; border-bottom: 1px solid #1E293B; padding-bottom: 8px; }
+        
+        /* Master Graph Presentation Canvas */
+        #viewport-frame { position: relative; width: 100%; height: 320px; background: #020204; border: 1px solid #1E293B; border-radius: 4px; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* Real-Time Metrics Overlay Card */
+        #metrics-deck { margin-top: 25px; padding-top: 15px; border-top: 1px solid #1E293B; display: flex; justify-content: space-between; font-size: 11px; color: #556; }
+        .data-point { color: #00FF99; font-weight: bold; text-shadow: 0 0 5px rgba(0,255,153,0.3); }
+    </style>
+</head>
+<body>
+
+    <div id="hud-container">
+        <div class="hud-header">
+            [SYNAPTIC TOPOGRAPHY OPTIMIZATION MONITOR] // GEN <span id="gen-val" style="color:#FFF;">0</span>
+        </div>
+        
+        <div id="viewport-frame">
+            <canvas id="graph-canvas"></canvas>
+        </div>
+
+        <div id="metrics-deck">
+            <div>GRAPH FITNESS VALUE: <span id="fit-val" class="data-point">0.00</span></div>
+            <div>TOPOLOGY PROFILE: 2:2:2 DIRECTED ACYCLIC MATRIX</div>
+            <div>STATUS: <span id="status-val" class="data-point">EVOLVING</span></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('graph-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Node spatial coordinate mappings for structured 2-2-2 presentation layout
+        const nodeCoordinates = [
+            { x: 0.15, y: 0.30, label: "IN_A" }, // Input Node 0
+            { x: 0.15, y: 0.70, label: "IN_B" }, // Input Node 1
+            { x: 0.50, y: 0.30, label: "HD_A" }, // Hidden Node 2
+            { x: 0.50, y: 0.70, label: "HD_B" }, // Hidden Node 3
+            { x: 0.85, y: 0.30, label: "OUT_A" },// Output Node 4
+            { x: 0.85, y: 0.70, label: "OUT_B" } // Output Node 5
+        ];
+
+        // Mapped structural indexes matching Go server synapses definitions
+        const connectionMap = [
+            { from: 0, to: 2 }, { from: 0, to: 3 },
+            { from: 1, to: 2 }, { from: 1, to: 3 },
+            { from: 2, to: 4 }, { from: 2, to: 5 },
+            { from: 3, to: 4 }, { from: 3, to: 5 }
+        ];
+
+        const socket = new WebSocket('ws://localhost:8080/neural-stream');
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            document.getElementById('gen-val').innerText = data.generation;
+            document.getElementById('fit-val').innerText = data.fitnessScore.toFixed(3);
+
+            renderGraphFrame(data.nodeStates, data.synapseWeights);
+        };
+
+        function renderGraphFrame(nodeStates, synapseWeights) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Phase 1: Compile and draw synaptic wire arrays
+            for (let i = 0; i < connectionMap.length; i++) {
+                const link = connectionMap[i];
+                const weight = synapseWeights[i];
+                
+                const startNode = nodeCoordinates[link.from];
+                const endNode = nodeCoordinates[link.to];
+
+                ctx.beginPath();
+                ctx.moveTo(startNode.x * w, startNode.y * h);
+                ctx.lineTo(endNode.x * w, endNode.y * h);
+
+                // Line thickness dynamic parameter scaling
+                ctx.lineWidth = Math.max(0.5, Math.abs(weight) * 4);
+                
+                // Colors modulate: Green tints for excitatory, Red tints for inhibitory weights
+                if (weight >= 0) {
+                    ctx.strokeStyle = `rgba(0, 255, 153, ${0.15 + (weight * 0.6)})`;
+                } else {
+                    ctx.strokeStyle = `rgba(255, 51, 102, ${0.15 + (Math.abs(weight) * 0.6)})`;
+                }
+                ctx.stroke();
+            }
+
+            // Phase 2: Compute and draw structural somatic nodes
+            for (let i = 0; i < nodeCoordinates.length; i++) {
+                const node = nodeCoordinates[i];
+                const state = nodeStates[i];
+                const nx = node.x * w;
+                const ny = node.y * h;
+
+                ctx.beginPath();
+                ctx.arc(nx, ny, 16, 0, Math.PI * 2);
+                
+                // Firing nodes cast a physical light vector aura profile
+                ctx.fillStyle = "#030306";
+                ctx.fill();
+                ctx.strokeStyle = `rgba(0, 255, 153, ${0.3 + (state * 0.7)})`;
+                ctx.lineWidth = 2 + (state * 3);
+                ctx.stroke();
+
+                if (state > 0.5) {
+                    ctx.shadowColor = "#00FF99";
+                    ctx.shadowBlur = state * 12;
+                    ctx.fillStyle = `rgba(0, 255, 153, ${state * 0.3})`;
+                    ctx.fill();
+                    ctx.shadowBlur = 0; // Immediate shadow frame flush reset
+                }
+
+                // Append contextual indexing identification tracking tags inside bounding nodes
+                ctx.fillStyle = "#A0A0AF";
+                ctx.font = "9px monospace";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(node.label, nx, ny);
+            }
+        }
+
+        socket.onclose = () => {
+            document.getElementById('status-val').innerHTML = "<span style='color:#FF3366;'>CRITICAL: NETWORK DISCONNECT // UNLINKED</span>";
+        };
+    </script>
+</body>
+</html>
