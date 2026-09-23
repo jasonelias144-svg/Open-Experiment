@@ -24,6 +24,13 @@ sometimes sonifies) the stream, a Dockerfile, and a docker-compose file.
 | 11 | [adaptive-graph](11-adaptive-graph/) | graph that rewires itself by node potential, with audio | ✅ |
 | 12 | [work-stealing-scheduler](12-work-stealing-scheduler/) | 4-worker work-stealing pool | ✅ |
 | 13 | [dht-chord-ring](13-dht-chord-ring/) | consistent-hashing ring (routing hops are faked) | ✅ |
+| 14 | [chord-for-real](14-chord-for-real/) | **new this session:** real Chord routing, checked against the paper | ✅ tests + experiment |
+
+Cycle 14 isn't from the transcript. It's where this session picked up the open
+generation. It replaces cycle 13's faked routing with the real protocol. Lookups
+average 0.94–0.99 × the paper's ½·log₂ N hops. Under churn, lookups stay
+correct even with most fingers stale, and the misses that do happen almost all
+come from nodes too new for their predecessor to know about. See its README.
 
 Each project folder has its own README with how to run it, a screenshot, what
 was checked, the repairs made, and the transcript line range of every file.
@@ -37,8 +44,10 @@ For every project I:
    containing every field the front-end reads;
 3. opened the front-end in headless Chromium against the live backend for
    about 6 seconds and recorded page errors, console errors, and frames
-   received. None of the 13 threw a JavaScript error. The only console
-   message was a single 404 on project 1 that didn't recur on a rerun. 12
+   received. None of the pages threw a JavaScript error. The only console
+   message is one 404 on whichever page a browser session opens first. It
+   moved from page to page when the order changed and never showed up as a
+   page request, which fits the browser's own automatic `/favicon.ico` fetch. 12
    pages received a live stream; the chat hub only sends when someone posts,
    so it was tested separately by sending a message;
 4. replayed each backend's Dockerfile build steps in a clean folder, copying
