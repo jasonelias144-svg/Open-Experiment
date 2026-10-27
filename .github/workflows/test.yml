@@ -1,0 +1,17 @@
+name: test
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  chord:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: experiment-in-choice/14-chord-for-real/backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: experiment-in-choice/14-chord-for-real/backend/go.mod
+      - run: go test ./...

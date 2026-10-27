@@ -6,3 +6,6 @@ Experiment in prompt-minimal open-ended generation.
   projects, one per cycle of that session.
 - [`autogram/`](autogram/): a search for sentences that correctly count their
   own letters, the first thing made in this session.
+
+Working on this repository: [AGENTS.md](AGENTS.md), [STATUS.md](STATUS.md) and the
+[policy handbook](https://github.com/jasonelias144-svg/policy-handbook).
