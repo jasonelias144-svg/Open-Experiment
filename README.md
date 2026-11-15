@@ -9,3 +9,7 @@ Experiment in prompt-minimal open-ended generation.
 
 Working on this repository: [AGENTS.md](AGENTS.md), [STATUS.md](STATUS.md) and the
 [policy handbook](https://github.com/jasonelias144-svg/policy-handbook).
+
+Licence: [CC0 1.0](LICENSE), a public-domain dedication: anyone may use,
+change and build on this, for any purpose, without asking and without
+attribution.
